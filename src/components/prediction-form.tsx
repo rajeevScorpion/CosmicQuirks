@@ -13,8 +13,8 @@ import { Input } from './ui/input';
 
 export const PredictionFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: "That doesn't look like a valid date. Please use YYYY-MM-DD format.",
+  date: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-\d{4}$/, {
+    message: "Please use DD-MM-YYYY format for the date.",
   }),
   question: z
     .string({ required_error: 'A question is required.' })
@@ -63,10 +63,10 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
             <FormItem>
               <FormLabel>Date of Birth</FormLabel>
               <FormControl>
-                <Input placeholder="YYYY-MM-DD" {...field} />
+                <Input placeholder="DD-MM-YYYY" {...field} />
               </FormControl>
                <FormDescription>
-                Please enter your birthdate in YYYY-MM-DD format.
+                Please enter your birthdate in DD-MM-YYYY format.
               </FormDescription>
               <FormMessage />
             </FormItem>
