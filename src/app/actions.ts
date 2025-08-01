@@ -1,9 +1,8 @@
 'use server';
 
 import { characterMatch, type CharacterMatchInput, type CharacterMatchOutput } from '@/ai/flows/character-match';
-import { format } from 'date-fns';
 
-export async function getPrediction(data: { name: string; date: Date; question: string }): Promise<{data: CharacterMatchOutput | null; error: string | null}> {
+export async function getPrediction(data: { name: string; date: string; question: string }): Promise<{data: CharacterMatchOutput | null; error: string | null}> {
   if (!data.name || !data.date || !data.question) {
     return { data: null, error: 'Please provide a valid name, date, and question.' };
   }
@@ -11,7 +10,7 @@ export async function getPrediction(data: { name: string; date: Date; question: 
   try {
     const input: CharacterMatchInput = {
       name: data.name,
-      birthdate: format(data.date, 'yyyy-MM-dd'),
+      birthdate: data.date,
       question: data.question,
     };
     

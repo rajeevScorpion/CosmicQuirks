@@ -3,22 +3,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Wand2 } from 'lucide-react';
+import { Wand2 } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { LoadingSpinner } from './loading-spinner';
 import { Input } from './ui/input';
 
 export const PredictionFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  date: z.date({
-    required_error: 'A date of birth is required.',
+  date: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "That doesn't look like a valid date. Please use YYYY-MM-DD format.",
   }),
   question: z
     .string({ required_error: 'A question is required.' })
@@ -36,6 +32,7 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
     resolver: zodResolver(PredictionFormSchema),
     defaultValues: {
       name: '',
+      date: '',
       question: '',
     },
   });
@@ -63,36 +60,14 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
           control={form.control}
           name="date"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
+            <FormItem>
               <FormLabel>Date of Birth</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={'outline'}
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    captionLayout="dropdown-nav"
-                    fromYear={1900}
-                    toYear={new Date().getFullYear()}
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input placeholder="YYYY-MM-DD" {...field} />
+              </FormControl>
+               <FormDescription>
+                Please enter your birthdate in YYYY-MM-DD format.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

@@ -20,8 +20,11 @@ export default function Home() {
     setIsLoading(true);
     setResult(null);
     setUserName(data.name);
-
-    const response = await getPrediction(data);
+    
+    const response = await getPrediction({
+        ...data,
+        date: data.date
+    });
 
     if (response.error) {
       toast({
