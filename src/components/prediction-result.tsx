@@ -23,19 +23,36 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
     if (!resultCardRef.current) {
       return;
     }
-    const originalWidth = resultCardRef.current.style.width;
-    try {
-      // Temporarily widen the card for better image capture
-      resultCardRef.current.style.width = '550px';
+    
+    // We target the parent container for image generation to have more control over centering.
+    const node = resultCardRef.current.parentElement;
+    if (!node) return;
 
-      const dataUrl = await htmlToImage.toPng(resultCardRef.current, {
+    const originalHeight = node.style.height;
+    const originalWidth = node.style.width;
+
+    try {
+      // Set fixed dimensions on a temporary container to ensure consistent output
+      node.style.width = '600px';
+      node.style.height = 'auto'; // Let height be determined by content
+
+      const dataUrl = await htmlToImage.toPng(node, {
         cacheBust: true,
         pixelRatio: 2,
-        skipFonts: true,
+        skipFonts: true, // Prevents cross-origin issues with external fonts
+        style: {
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: '100%',
+          height: '100%',
+        }
       });
+      
+      // Restore original styles
+      node.style.width = originalWidth;
+      node.style.height = originalHeight;
 
-      // Restore original width
-      resultCardRef.current.style.width = originalWidth;
 
       if (action === 'download') {
         const link = document.createElement('a');
@@ -76,9 +93,10 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
         title: `${action.charAt(0).toUpperCase() + action.slice(1)} Failed`,
         description: `Could not generate image for ${action}. Please try again.`,
       });
-      // Restore original width in case of error
-      if (resultCardRef.current) {
-        resultCardRef.current.style.width = originalWidth;
+       // Restore original styles in case of error
+      if (node) {
+        node.style.width = originalWidth;
+        node.style.height = originalHeight;
       }
     }
   }, [result, toast]);
@@ -88,54 +106,56 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
 
   return (
     <div className="relative">
-      <Card ref={resultCardRef} className="w-full max-w-lg animate-in fade-in-50 zoom-in-95 duration-500 overflow-hidden">
-        <CardHeader className="text-center bg-card">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Gift className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="font-headline text-2xl">A Birthday Match for {name}!</CardTitle>
-          <p className="text-muted-foreground">You share a birthday with...</p>
-        </CardHeader>
-        <CardContent className="space-y-4 bg-card p-6 pb-6">
-          <div className="rounded-lg border bg-background p-4">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-full">
-                <Image
-                  src={result.characterImage}
-                  alt={`Image of ${result.characterName}`}
-                  width={400}
-                  height={400}
-                  className="rounded-lg object-cover aspect-square"
-                  data-ai-hint="character portrait"
-                />
+      <div> {/* This new div will be the target for html-to-image */}
+        <Card ref={resultCardRef} className="w-full max-w-lg animate-in fade-in-50 zoom-in-95 duration-500 overflow-hidden">
+          <CardHeader className="text-center bg-card">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Gift className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle className="font-headline text-2xl">A Birthday Match for {name}!</CardTitle>
+            <p className="text-muted-foreground">You share a birthday with...</p>
+          </CardHeader>
+          <CardContent className="space-y-4 bg-card p-6 pb-6">
+            <div className="rounded-lg border bg-background p-4">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-full">
+                  <Image
+                    src={result.characterImage}
+                    alt={`Image of ${result.characterName}`}
+                    width={400}
+                    height={400}
+                    className="rounded-lg object-cover aspect-square"
+                    data-ai-hint="character portrait"
+                  />
+                </div>
+                <div className='text-center'>
+                  <h3 className="font-semibold text-foreground text-lg">{result.characterName}</h3>
+                  <p className="text-sm text-muted-foreground">{result.characterDescription}</p>
+                </div>
               </div>
-              <div className='text-center'>
-                <h3 className="font-semibold text-foreground text-lg">{result.characterName}</h3>
-                <p className="text-sm text-muted-foreground">{result.characterDescription}</p>
+            </div>
+            
+            <div className="w-full text-center">
+              <div className="mb-2 inline-flex items-center gap-2">
+                <Sparkles className="h-5 w-5 flex-shrink-0 text-primary" />
+                <h3 className="font-semibold text-lg text-primary">Your Cosmic Prediction</h3>
               </div>
             </div>
-          </div>
-          
-          <div className="w-full text-center">
-            <div className="mb-2 inline-flex items-center gap-2">
-              <Sparkles className="h-5 w-5 flex-shrink-0 text-primary" />
-              <h3 className="font-semibold text-lg text-primary">Your Cosmic Prediction</h3>
-            </div>
-          </div>
 
-          <Separator />
+            <Separator />
 
-          <div className="w-full">
-            <div className="relative">
-              <Quote className="absolute -left-2 -top-1 h-4 w-4 text-muted-foreground/50" />
-              <p className="pl-4 text-foreground/90 italic">
-                {result.prediction}
-              </p>
-              <Quote className="absolute -bottom-1 -right-2 h-4 w-4 rotate-180 text-muted-foreground/50" />
+            <div className="w-full">
+              <div className="relative">
+                <Quote className="absolute -left-2 -top-1 h-4 w-4 text-muted-foreground/50" />
+                <p className="pl-4 text-foreground/90 italic">
+                  {result.prediction}
+                </p>
+                <Quote className="absolute -bottom-1 -right-2 h-4 w-4 rotate-180 text-muted-foreground/50" />
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
       
       <div className="mt-4 flex justify-end gap-2">
           <Button onClick={handleDownload} variant="outline" size="sm">
