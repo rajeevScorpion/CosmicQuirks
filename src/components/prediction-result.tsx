@@ -19,11 +19,21 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
   const resultCardRef = useRef<HTMLDivElement>(null);
 
   const generateImage = async (element: HTMLDivElement) => {
-    return htmlToImage.toPng(element, {
+    // The element needs to be in the DOM, and we need to set the background
+    // color of the parent to be the same as the theme's background to get
+    // the rounded corners correctly.
+    if (element.parentElement) {
+        element.parentElement.style.backgroundColor = 'hsl(var(--background))';
+    }
+    const dataUrl = await htmlToImage.toPng(element, {
       cacheBust: true,
       pixelRatio: 2,
       skipFonts: true,
     });
+    if (element.parentElement) {
+        element.parentElement.style.backgroundColor = '';
+    }
+    return dataUrl
   };
 
   const handleDownload = async () => {
@@ -63,35 +73,34 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
         <Card className="overflow-hidden rounded-2xl border-2 border-primary/20 shadow-lg">
           <CardContent className="p-0">
             <div className="bg-card p-6 text-center">
-              <div className="flex justify-center items-center mb-4">
-                <Gift className="w-8 h-8 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold">A Birthday Match for {name}!</h2>
-              <p className="text-muted-foreground">You share a birthday with...</p>
+                <div className="flex justify-center items-center mb-4">
+                    <Gift className="w-8 h-8 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold">A Birthday Match for {name}!</h2>
+                <p className="text-muted-foreground">You share a birthday with...</p>
             </div>
             
             <div className="p-6 bg-muted/30">
-              <div className="w-full aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden border">
-                 <Image
-                  src={result.characterImage}
-                  alt={`Image of ${result.characterName}`}
-                  width={400}
-                  height={400}
-                  className="object-cover w-full h-full"
-                  data-ai-hint="character portrait"
-                />
-              </div>
-              <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
-              <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
+                <div className="w-full aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden border">
+                    <Image
+                        src={result.characterImage}
+                        alt={`Image of ${result.characterName}`}
+                        width={400}
+                        height={400}
+                        className="object-cover w-full h-full"
+                        data-ai-hint="character portrait"
+                    />
+                </div>
+                <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
+                <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
             </div>
             
-            <div className="p-6 bg-card">
-              <div className="mb-4">
-                <div className="text-center font-bold text-lg">Your Cosmic Prediction</div>
-              </div>
-              <p className="text-center text-foreground/90">
-                {result.prediction}
-              </p>
+            <div className="bg-card p-6 text-center">
+                <h3 className="text-2xl font-bold text-primary">Your Cosmic Prediction</h3>
+                <div className="my-4 h-px w-20 bg-primary/20 mx-auto" />
+                <p className="text-foreground/90">
+                    {result.prediction}
+                </p>
             </div>
 
           </CardContent>
@@ -105,7 +114,7 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
         </Button>
         <Button onClick={handleShare} size="sm">
           <Share2 />
-          Share on WhatsApp
+          Share
         </Button>
       </div>
     </div>
