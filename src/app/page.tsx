@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { z } from 'zod';
 import { PredictionForm, type PredictionFormSchema } from '@/components/prediction-form';
 import { PredictionResult } from '@/components/prediction-result';
@@ -9,12 +9,28 @@ import { getPrediction } from '@/app/actions';
 import type { CharacterMatchOutput } from '@/ai/flows/character-match';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles } from 'lucide-react';
+import ReactConfetti from 'react-confetti';
+
+function useWindowSize() {
+  const [size, setSize] = useState([0, 0]);
+  useEffect(() => {
+    function updateSize() {
+      setSize([window.innerWidth, window.innerHeight]);
+    }
+    window.addEventListener('resize', updateSize);
+    updateSize();
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+  return size;
+}
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<CharacterMatchOutput | null>(null);
   const [userName, setUserName] = useState('');
   const { toast } = useToast();
+  const [width, height] = useWindowSize();
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleSubmit = async (data: z.infer<typeof PredictionFormSchema>) => {
     setIsLoading(true);
@@ -34,12 +50,15 @@ export default function Home() {
       });
     } else if (response.data) {
       setResult(response.data);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 8000);
     }
     setIsLoading(false);
   };
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
+      {showConfetti && <ReactConfetti width={width} height={height} recycle={false} numberOfPieces={400} />}
       <div className="w-full max-w-lg">
         <div className="flex flex-col items-center justify-center text-center">
             <div className="mb-4 flex items-center gap-3">
