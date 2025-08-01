@@ -28,6 +28,7 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
       const dataUrl = await htmlToImage.toPng(resultCardRef.current, { 
         cacheBust: true,
         pixelRatio: 2,
+        skipFonts: true
        });
 
       const blob = await (await fetch(dataUrl)).blob();
