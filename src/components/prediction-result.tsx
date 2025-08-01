@@ -4,7 +4,7 @@ import { useRef, useCallback } from 'react';
 import type { CharacterMatchOutput } from '@/ai/flows/character-match';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gift, Quote, Sparkles, Share2 } from 'lucide-react';
+import { Gift, Quote, Sparkles, Share2, Download } from 'lucide-react';
 import { Separator } from './ui/separator';
 import Image from 'next/image';
 import * as htmlToImage from 'html-to-image';
@@ -18,6 +18,32 @@ type PredictionResultProps = {
 export function PredictionResult({ result, name }: PredictionResultProps) {
   const resultCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const handleDownload = useCallback(async () => {
+    if (!resultCardRef.current) {
+      return;
+    }
+
+    try {
+      const dataUrl = await htmlToImage.toPng(resultCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        skipFonts: true,
+      });
+
+      const link = document.createElement('a');
+      link.download = 'cosmic-quirk.png';
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Download Failed',
+        description: 'Could not generate image for download. Please try again.',
+      });
+    }
+  }, [toast]);
 
   const handleShare = useCallback(async () => {
     if (!resultCardRef.current) {
@@ -112,11 +138,15 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
             </div>
           </div>
         </CardContent>
-         <CardFooter className="bg-card pt-6">
-           <Button onClick={handleShare} className="w-full">
-            <Share2 className="mr-2" />
-            Share on WhatsApp
-          </Button>
+         <CardFooter className="bg-card pt-6 flex justify-end gap-2">
+            <Button onClick={handleDownload} variant="outline" size="sm">
+                <Download className="mr-2" />
+                Download
+            </Button>
+            <Button onClick={handleShare} size="sm">
+                <Share2 className="mr-2" />
+                Share
+            </Button>
         </CardFooter>
       </Card>
     </div>
