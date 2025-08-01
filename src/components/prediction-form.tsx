@@ -10,12 +10,30 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Textarea } from '@/components/ui/textarea';
 import { LoadingSpinner } from './loading-spinner';
 import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+
+const months = [
+  { value: '01', label: 'January' },
+  { value: '02', label: 'February' },
+  { value: '03', label: 'March' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'May' },
+  { value: '06', label: 'June' },
+  { value: '07', label: 'July' },
+  { value: '08', label: 'August' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+];
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 100 }, (_, i) => (currentYear - i).toString());
 
 export const PredictionFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  date: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-\d{4}$/, {
-    message: "Please use DD-MM-YYYY format for the date.",
-  }),
+  month: z.string({ required_error: 'Please select a month.' }),
+  year: z.string({ required_error: 'Please select a year.' }),
   question: z
     .string({ required_error: 'A question is required.' })
     .min(10, { message: 'Your question must be at least 10 characters long.' })
@@ -32,7 +50,8 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
     resolver: zodResolver(PredictionFormSchema),
     defaultValues: {
       name: '',
-      date: '',
+      month: '',
+      year: '',
       question: '',
     },
   });
@@ -56,22 +75,52 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date of Birth</FormLabel>
-              <FormControl>
-                <Input placeholder="DD-MM-YYYY" {...field} />
-              </FormControl>
-               <FormDescription>
-                Please enter your birthdate in DD-MM-YYYY format.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex gap-4">
+          <FormField
+            control={form.control}
+            name="month"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Birth Month</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select month" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {months.map(month => (
+                      <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="year"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Birth Year</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {years.map(year => (
+                      <SelectItem key={year} value={year}>{year}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="question"

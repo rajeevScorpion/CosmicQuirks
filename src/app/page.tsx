@@ -37,10 +37,7 @@ export default function Home() {
     setResult(null);
     setUserName(data.name);
     
-    const response = await getPrediction({
-        ...data,
-        date: data.date
-    });
+    const response = await getPrediction(data);
 
     if (response.error) {
       toast({
