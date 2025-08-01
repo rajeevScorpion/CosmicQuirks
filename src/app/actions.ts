@@ -21,12 +21,9 @@ export async function getPrediction(data: { name: string; date: string; question
       return { data: null, error: 'The oracle is silent. The generated response was incomplete. Please try again.' };
     }
 
-    // The prompt already includes "Hi {name}!" so we don't need to prepend it here.
     const finalResult = {
       ...result,
-      prediction: result.prediction.startsWith(`Hi ${data.name}!`) 
-        ? result.prediction.substring(`Hi ${data.name}!`.length).trim() 
-        : result.prediction,
+      prediction: `Hi ${data.name}! ${result.prediction}`,
     };
 
     return { data: finalResult, error: null };
