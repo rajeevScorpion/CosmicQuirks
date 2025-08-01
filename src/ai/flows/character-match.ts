@@ -42,7 +42,7 @@ Question: {{{question}}}
 
 Character Name: (The name of the imaginary historical character)
 Character Description: (A brief description of the character)
-Prediction: (A funny future prediction inspired by the character and relevant to the question)
+Prediction: (A funny future prediction inspired by the character and relevant to the question. It should start with "Hi {{{name}}}! ")
 
 Make sure the character name and description are creative and humorous. The prediction should be related to both the character and question.
 `,
