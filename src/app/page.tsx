@@ -13,11 +13,13 @@ import { Sparkles } from 'lucide-react';
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<CharacterMatchOutput | null>(null);
+  const [userName, setUserName] = useState('');
   const { toast } = useToast();
 
   const handleSubmit = async (data: z.infer<typeof PredictionFormSchema>) => {
     setIsLoading(true);
     setResult(null);
+    setUserName(data.name);
 
     const response = await getPrediction(data);
 
@@ -60,9 +62,12 @@ export default function Home() {
 
           {result && (
             <>
-              <PredictionResult result={result} />
+              <PredictionResult result={result} name={userName} />
               <button
-                onClick={() => setResult(null)}
+                onClick={() => {
+                  setResult(null);
+                  setUserName('');
+                }}
                 className="mx-auto mt-6 block text-sm text-primary underline-offset-4 hover:underline"
               >
                 Ask another question

@@ -13,8 +13,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { LoadingSpinner } from './loading-spinner';
+import { Input } from './ui/input';
 
 export const PredictionFormSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   date: z.date({
     required_error: 'A date of birth is required.',
   }),
@@ -33,6 +35,7 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
   const form = useForm<z.infer<typeof PredictionFormSchema>>({
     resolver: zodResolver(PredictionFormSchema),
     defaultValues: {
+      name: '',
       question: '',
     },
   });
@@ -43,6 +46,19 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-6 rounded-lg border bg-card p-6 shadow-sm"
       >
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Your Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Jane Doe" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="date"
@@ -67,6 +83,9 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
+                    captionLayout="dropdown-nav"
+                    fromYear={1900}
+                    toYear={new Date().getFullYear()}
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
