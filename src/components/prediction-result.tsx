@@ -102,7 +102,7 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
           <CardTitle className="font-headline text-2xl">A Birthday Match for {name}!</CardTitle>
           <p className="text-muted-foreground">You share a birthday with...</p>
         </CardHeader>
-        <CardContent className="space-y-6 bg-card pb-6">
+        <CardContent className="space-y-4 bg-card p-6 pb-6">
           <div className="rounded-lg border bg-background p-4">
             <div className="flex flex-col items-center gap-4">
               <div className="w-full">
@@ -121,14 +121,17 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
               </div>
             </div>
           </div>
+          
+          <div className="w-full text-center">
+            <div className="mb-2 inline-flex items-center gap-2">
+              <Sparkles className="h-5 w-5 flex-shrink-0 text-primary" />
+              <h3 className="font-semibold text-lg text-primary">Your Cosmic Prediction</h3>
+            </div>
+          </div>
 
           <Separator />
 
           <div className="w-full">
-            <div className="mb-3 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 flex-shrink-0 text-primary" />
-              <h3 className="font-semibold text-lg text-primary">Your Cosmic Prediction</h3>
-            </div>
             <div className="relative">
               <Quote className="absolute -left-2 -top-1 h-4 w-4 text-muted-foreground/50" />
               <p className="pl-4 text-foreground/90 italic">
