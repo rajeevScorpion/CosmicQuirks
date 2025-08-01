@@ -19,78 +19,72 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
   const resultCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const handleDownload = useCallback(async () => {
+  const generateImage = useCallback(async (action: 'download' | 'share') => {
     if (!resultCardRef.current) {
       return;
     }
-
+    const originalWidth = resultCardRef.current.style.width;
     try {
+      // Temporarily widen the card for better image capture
+      resultCardRef.current.style.width = '550px';
+
       const dataUrl = await htmlToImage.toPng(resultCardRef.current, {
         cacheBust: true,
         pixelRatio: 2,
         skipFonts: true,
       });
 
-      const link = document.createElement('a');
-      link.download = 'cosmic-quirk.png';
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error('Download failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Download Failed',
-        description: 'Could not generate image for download. Please try again.',
-      });
-    }
-  }, [toast]);
+      // Restore original width
+      resultCardRef.current.style.width = originalWidth;
 
-  const handleShare = useCallback(async () => {
-    if (!resultCardRef.current) {
-      return;
-    }
+      if (action === 'download') {
+        const link = document.createElement('a');
+        link.download = 'cosmic-quirk.png';
+        link.href = dataUrl;
+        link.click();
+      } else if (action === 'share') {
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], 'cosmic-quirk.png', { type: 'image/png' });
+        
+        const shareText = `Check out my cosmic prediction! My historical birthday match is ${result.characterName}.`;
 
-    try {
-      const dataUrl = await htmlToImage.toPng(resultCardRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        skipFonts: true,
-      });
-
-      const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], 'cosmic-quirk.png', { type: 'image/png' });
-      
-      const shareText = `Check out my cosmic prediction! My historical birthday match is ${result.characterName}.`;
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'My Cosmic Quirk!',
-          text: shareText,
-        });
-      } else if (navigator.canShare) {
-        // Fallback for devices that can share text but not files
-         await navigator.share({
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
             title: 'My Cosmic Quirk!',
-            text: `${shareText}\n${result.prediction}`,
-        });
-      }
-       else {
-        // Fallback for browsers that do not support Web Share API
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(
-          `${shareText}\n\nPrediction: "${result.prediction}"`
-        )}`;
-        window.open(whatsappUrl, '_blank');
+            text: shareText,
+          });
+        } else if (navigator.canShare) {
+          // Fallback for devices that can share text but not files
+           await navigator.share({
+              title: 'My Cosmic Quirk!',
+              text: `${shareText}\n${result.prediction}`,
+          });
+        }
+         else {
+          // Fallback for browsers that do not support Web Share API
+          const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(
+            `${shareText}\n\nPrediction: "${result.prediction}"`
+          )}`;
+          window.open(whatsappUrl, '_blank');
+        }
       }
     } catch (error) {
-      console.error('Sharing failed:', error);
+      console.error(`${action} failed:`, error);
       toast({
         variant: 'destructive',
-        title: 'Sharing Failed',
-        description: 'Could not generate image for sharing. Please try again.',
+        title: `${action.charAt(0).toUpperCase() + action.slice(1)} Failed`,
+        description: `Could not generate image for ${action}. Please try again.`,
       });
+      // Restore original width in case of error
+      if (resultCardRef.current) {
+        resultCardRef.current.style.width = originalWidth;
+      }
     }
   }, [result, toast]);
+
+  const handleDownload = () => generateImage('download');
+  const handleShare = () => generateImage('share');
 
   return (
     <div className="relative">
