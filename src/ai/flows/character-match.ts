@@ -1,3 +1,4 @@
+
 // This is an AI-powered function that matches a user's birthdate with a funny, imaginary historical character.
 
 'use server';
@@ -42,7 +43,7 @@ Question: {{{question}}}
 
 Character Name: (The name of the imaginary historical character)
 Character Description: (A brief description of the character)
-Prediction: (A funny future prediction inspired by the character and relevant to the question. It should start with "Hi {{{name}}}! ")
+Prediction: (A funny future prediction inspired by the character and relevant to the question. It should NOT start with the user's name.)
 
 Make sure the character name and description are creative and humorous. The prediction should be related to both the character and question.
 `,

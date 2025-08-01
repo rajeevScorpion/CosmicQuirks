@@ -1,3 +1,4 @@
+
 'use server';
 
 import { characterMatch, type CharacterMatchInput, type CharacterMatchOutput } from '@/ai/flows/character-match';
@@ -20,7 +21,15 @@ export async function getPrediction(data: { name: string; date: string; question
       return { data: null, error: 'The oracle is silent. The generated response was incomplete. Please try again.' };
     }
 
-    return { data: result, error: null };
+    // The prompt already includes "Hi {name}!" so we don't need to prepend it here.
+    const finalResult = {
+      ...result,
+      prediction: result.prediction.startsWith(`Hi ${data.name}!`) 
+        ? result.prediction.substring(`Hi ${data.name}!`.length).trim() 
+        : result.prediction,
+    };
+
+    return { data: finalResult, error: null };
   } catch (e) {
     console.error('Prediction failed:', e);
     return { data: null, error: 'An unexpected cosmic disturbance occurred. Please try again later.' };
