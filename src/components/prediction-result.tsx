@@ -124,8 +124,8 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
 
           <Separator />
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-5 w-5 text-primary" />
               <h3 className="font-semibold text-lg text-primary">Your Cosmic Prediction</h3>
             </div>
