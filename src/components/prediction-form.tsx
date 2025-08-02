@@ -27,9 +27,6 @@ const months = [
   { value: '12', label: 'December' },
 ];
 
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 100 }, (_, i) => (currentYear - i).toString());
-
 export const PredictionFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   month: z.string({ required_error: 'Please select a month.' }),
@@ -55,6 +52,9 @@ export function PredictionForm({ onSubmit, isLoading }: PredictionFormProps) {
       question: '',
     },
   });
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => (currentYear - i).toString());
 
   return (
     <Form {...form}>
