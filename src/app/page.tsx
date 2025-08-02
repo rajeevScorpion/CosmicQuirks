@@ -29,8 +29,28 @@ export default function Home() {
   const [result, setResult] = useState<CharacterMatchOutput | null>(null);
   const [userName, setUserName] = useState('');
   const { toast } = useToast();
-  const [width, height] = useWindowSize();
   const [showConfetti, setShowConfetti] = useState(false);
+  const [windowSize, setWindowSize] = useState<{width: number; height: number}>({width: 0, height: 0});
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setWindowSize({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+    setCurrentYear(new Date().getFullYear());
+
+    function handleResize() {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
 
   const handleSubmit = async (data: z.infer<typeof PredictionFormSchema>) => {
     setIsLoading(true);
@@ -55,7 +75,7 @@ export default function Home() {
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
-      {showConfetti && <ReactConfetti width={width} height={height} recycle={false} numberOfPieces={400} />}
+      {showConfetti && windowSize.width > 0 && <ReactConfetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={400} />}
       <div className="w-full max-w-lg">
         <div className="flex flex-col items-center justify-center text-center">
             <div className="mb-4 flex items-center gap-3">
@@ -96,7 +116,7 @@ export default function Home() {
         </div>
       </div>
        <footer className="mt-8 text-center text-xs text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} Cosmic Quirks. For entertainment purposes only.</p>
+        {currentYear && <p>&copy; {currentYear} Cosmic Quirks. For entertainment purposes only.</p>}
       </footer>
     </main>
   );
