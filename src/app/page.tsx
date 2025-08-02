@@ -29,21 +29,18 @@ export default function Home() {
   const [loadingText, setLoadingText] = useState(loadingMessages[0]);
 
   useEffect(() => {
-    setWindowSize({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-    setCurrentYear(new Date().getFullYear());
-
-    function handleResize() {
+    const updateWindowSize = () => {
       setWindowSize({
         width: window.innerWidth,
         height: window.innerHeight,
       });
-    }
+    };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    updateWindowSize();
+    setCurrentYear(new Date().getFullYear());
+
+    window.addEventListener('resize', updateWindowSize);
+    return () => window.removeEventListener('resize', updateWindowSize);
   }, []);
 
   useEffect(() => {
@@ -110,7 +107,7 @@ export default function Home() {
           
           {isLoading && (
             <div className="flex flex-col items-center justify-center gap-4 rounded-lg border bg-card p-8 shadow-sm">
-              <Sparkles className="h-12 w-12 animate-pulse text-primary" />
+              <Sparkles className="h-12 w-12 animate-magic-pulse text-primary" />
               <p className="text-muted-foreground">{loadingText}</p>
             </div>
           )}

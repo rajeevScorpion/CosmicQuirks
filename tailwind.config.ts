@@ -88,10 +88,15 @@ export default {
             height: '0',
           },
         },
+        'magic-pulse': {
+          '0%, 100%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
+          '50%': { transform: 'scale(1.2) rotate(180deg)', opacity: '0.7' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'magic-pulse': 'magic-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },
