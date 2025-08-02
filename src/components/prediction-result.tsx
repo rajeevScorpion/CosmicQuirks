@@ -13,11 +13,11 @@ import { Card, CardContent } from '@/components/ui/card';
 interface PredictionResultProps {
   result: CharacterMatchOutput;
   name: string;
+  question: string;
 }
 
-export function PredictionResult({ result, name }: PredictionResultProps) {
+export function PredictionResult({ result, name, question }: PredictionResultProps) {
   const resultCardRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const generateImage = async (element: HTMLDivElement) => {
     // The element needs to be in the DOM, and we need to set the background
@@ -70,44 +70,46 @@ export function PredictionResult({ result, name }: PredictionResultProps) {
 
   return (
     <div className="w-full max-w-lg animate-in fade-in-50 zoom-in-95 duration-500">
-      <div ref={containerRef}>
-        <div ref={resultCardRef} className="p-4 bg-transparent">
-          <Card className="overflow-hidden rounded-2xl border-2 border-primary/20 shadow-lg">
-            <CardContent className="p-0">
-              <div className="bg-card p-6 text-center">
-                  <div className="flex justify-center items-center mb-4">
-                      <Gift className="w-8 h-8 text-primary" />
-                  </div>
-                  <h2 className="text-2xl font-bold">A Birthday Match for {name}!</h2>
-                  <p className="text-muted-foreground">You share a birthday with...</p>
-              </div>
-              
-              <div className="p-6 bg-muted/30">
-                  <div className="w-full aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden border">
-                      <Image
-                          src={result.characterImage}
-                          alt={`Image of ${result.characterName}`}
-                          width={400}
-                          height={400}
-                          className="object-cover w-full h-full"
-                          data-ai-hint="character portrait"
-                      />
-                  </div>
-                  <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
-                  <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
-              </div>
-              
-              <div className="bg-card p-6 text-center">
-                  <h3 className="text-2xl font-bold text-primary">Your Cosmic Prediction</h3>
-                  <div className="my-4 h-px w-20 bg-primary/20 mx-auto" />
-                  <p className="text-foreground/90">
-                      {result.prediction}
-                  </p>
-              </div>
+      <div ref={resultCardRef} className="p-4 bg-transparent">
+        <Card className="overflow-hidden rounded-2xl border-2 border-primary/20 shadow-lg">
+          <CardContent className="p-0">
+            <div className="bg-card p-6 text-center">
+                <div className="flex justify-center items-center mb-4">
+                    <Gift className="w-8 h-8 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold">A Birthday Match for {name}!</h2>
+                <p className="text-muted-foreground">You share a birthday with...</p>
+            </div>
+            
+            <div className="p-6 bg-muted/30">
+                <div className="w-full aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden border">
+                    <Image
+                        src={result.characterImage}
+                        alt={`Image of ${result.characterName}`}
+                        width={400}
+                        height={400}
+                        className="object-cover w-full h-full"
+                        data-ai-hint="character portrait"
+                    />
+                </div>
+                <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
+                <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
+            </div>
+            
+            <div className="bg-card p-6 text-center">
+                <h3 className="text-xl font-bold">Question</h3>
+                <p className="text-foreground/90 mt-2 line-clamp-2">
+                  {question}
+                </p>
+                <div className="my-4 h-px w-20 bg-primary/20 mx-auto" />
+                <h3 className="text-2xl font-bold text-primary">Your Cosmic Prediction</h3>
+                <p className="text-foreground/90 mt-4">
+                    {result.prediction}
+                </p>
+            </div>
 
-            </CardContent>
-          </Card>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mt-4 flex justify-center gap-2">

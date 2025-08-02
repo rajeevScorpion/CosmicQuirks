@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -22,6 +23,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<CharacterMatchOutput | null>(null);
   const [userName, setUserName] = useState('');
+  const [userQuestion, setUserQuestion] = useState('');
   const { toast } = useToast();
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState<{width: number; height: number}>({width: 0, height: 0});
@@ -69,6 +71,7 @@ export default function Home() {
     setIsLoading(true);
     setResult(null);
     setUserName(data.name);
+    setUserQuestion(data.question);
     
     const response = await getPrediction(data);
 
@@ -114,11 +117,12 @@ export default function Home() {
 
           {result && (
             <>
-              <PredictionResult result={result} name={userName} />
+              <PredictionResult result={result} name={userName} question={userQuestion} />
               <button
                 onClick={() => {
                   setResult(null);
                   setUserName('');
+                  setUserQuestion('');
                 }}
                 className="mx-auto mt-6 block text-sm text-primary underline-offset-4 hover:underline"
               >
