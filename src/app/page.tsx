@@ -4,12 +4,19 @@ import { useState, useEffect } from 'react';
 import type { z } from 'zod';
 import { PredictionForm, type PredictionFormSchema } from '@/components/prediction-form';
 import { PredictionResult } from '@/components/prediction-result';
-import { LoadingSpinner } from '@/components/loading-spinner';
 import { getPrediction } from '@/app/actions';
 import type { CharacterMatchOutput } from '@/ai/flows/character-match';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles } from 'lucide-react';
 import ReactConfetti from 'react-confetti';
+
+const loadingMessages = [
+  'Consulting the celestial archives...',
+  'Gazing into the cosmic crystal ball...',
+  'Shuffling the tarot cards of time...',
+  "Polishing the oracle's spectacles...",
+  'Decoding ancient prophecies...',
+];
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +26,7 @@ export default function Home() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState<{width: number; height: number}>({width: 0, height: 0});
   const [currentYear, setCurrentYear] = useState<number | null>(null);
+  const [loadingText, setLoadingText] = useState(loadingMessages[0]);
 
   useEffect(() => {
     setWindowSize({
@@ -37,6 +45,27 @@ export default function Home() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    if (isLoading) {
+      interval = setInterval(() => {
+        setLoadingText(prevText => {
+          const currentIndex = loadingMessages.indexOf(prevText);
+          const nextIndex = (currentIndex + 1) % loadingMessages.length;
+          return loadingMessages[nextIndex];
+        });
+      }, 2000);
+    } else {
+      setLoadingText(loadingMessages[0]);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isLoading]);
 
 
   const handleSubmit = async (data: z.infer<typeof PredictionFormSchema>) => {
@@ -81,8 +110,8 @@ export default function Home() {
           
           {isLoading && (
             <div className="flex flex-col items-center justify-center gap-4 rounded-lg border bg-card p-8 shadow-sm">
-              <LoadingSpinner />
-              <p className="text-muted-foreground">Consulting the celestial archives...</p>
+              <Sparkles className="h-12 w-12 animate-pulse text-primary" />
+              <p className="text-muted-foreground">{loadingText}</p>
             </div>
           )}
 
