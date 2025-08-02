@@ -106,6 +106,9 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
                 <p className="text-foreground/90 mt-4">
                     {result.prediction}
                 </p>
+                <p className="text-xs text-primary mt-4 text-center">
+                  cosmicQuirks.in
+                </p>
             </div>
 
           </CardContent>
