@@ -1,58 +1,61 @@
 
 'use server';
 
-import { characterMatch, type CharacterMatchInput, type CharacterMatchOutput } from '@/ai/flows/character-match';
+import type { CharacterMatchOutput } from '@/ai/flows/character-match';
 
-function calculateAge(year: number, month: number): number {
-  const birthDate = new Date(year, month - 1, 1);
-  const today = new Date();
-  
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const m = today.getMonth() - birthDate.getMonth();
-  
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  
-  return age;
-}
-
-export async function getPrediction(data: { name: string; month: string; year: string; question: string }): Promise<{data: CharacterMatchOutput | null; error: string | null}> {
+export async function getPrediction(data: { 
+  name: string; 
+  month: string; 
+  year: string; 
+  question: string;
+  formType?: string;
+}): Promise<{data: CharacterMatchOutput | null; error: string | null; code?: string}> {
   if (!data.name || !data.month || !data.year || !data.question) {
-    return { data: null, error: 'Please provide a valid name, birth month, birth year, and question.' };
+    return { 
+      data: null, 
+      error: 'Please provide a valid name, birth month, birth year, and question.' 
+    };
   }
 
   try {
-    // Using day 01 as a default since it's not provided by the user.
-    const birthdate = `01-${data.month}-${data.year}`;
-
-    const input: CharacterMatchInput = {
-      name: data.name,
-      birthdate: birthdate,
-      question: data.question,
-    };
+    // Call our new API endpoint
+    const baseURL = process.env.NODE_ENV === 'production' 
+      ? process.env.NEXTAUTH_URL || 'https://cosmicquirks.in'
+      : 'http://localhost:9002';
     
-    const result = await characterMatch(input);
+    const response = await fetch(`${baseURL}/api/prediction`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: data.name,
+        month: data.month,
+        year: data.year,
+        question: data.question,
+        formType: data.formType || 'fortune',
+      }),
+    });
 
-    if (!result?.characterName || !result?.prediction || !result?.characterDescription || !result?.characterImage) {
-      return { data: null, error: 'The oracle is silent. The generated response was incomplete. Please try again.' };
+    const result = await response.json();
+
+    if (!response.ok) {
+      return {
+        data: null,
+        error: result.message || 'An unexpected cosmic disturbance occurred.',
+        code: result.code,
+      };
     }
-    
-    const age = calculateAge(parseInt(data.year, 10), parseInt(data.month, 10));
-    let predictionPrefix = `Hi ${data.name}!`;
 
-    if (age < 12) {
-      predictionPrefix += " You are just born I guess. But I will still tell your future: ";
-    }
-    
-    const finalResult = {
-      ...result,
-      prediction: `${predictionPrefix} ${result.prediction}`,
+    return {
+      data: result.data,
+      error: null,
     };
-
-    return { data: finalResult, error: null };
   } catch (e) {
     console.error('Prediction failed:', e);
-    return { data: null, error: 'An unexpected cosmic disturbance occurred. Please try again later.' };
+    return { 
+      data: null, 
+      error: 'An unexpected cosmic disturbance occurred. Please try again later.' 
+    };
   }
 }

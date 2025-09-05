@@ -19,6 +19,13 @@ interface PredictionResultProps {
 export function PredictionResult({ result, name, question }: PredictionResultProps) {
   const resultCardRef = useRef<HTMLDivElement>(null);
 
+  const isIOSSafari = () => {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+    return isIOS || (isSafari && /Apple/.test(navigator.vendor));
+  };
+
   const generateImage = async (element: HTMLDivElement) => {
     // The element needs to be in the DOM, and we need to set the background
     // color of the parent to be the same as the theme's background to get
@@ -26,15 +33,46 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
     if (element.parentElement) {
         element.parentElement.style.backgroundColor = 'hsl(var(--background))';
     }
-    const dataUrl = await htmlToImage.toPng(element, {
-      cacheBust: true,
-      pixelRatio: 2,
-      skipFonts: true,
-    });
+    
+    let dataUrl: string;
+    
+    if (isIOSSafari()) {
+      // iOS Safari specific handling with timing fixes
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      try {
+        dataUrl = await htmlToImage.toPng(element, {
+          cacheBust: true,
+          pixelRatio: 1, // Lower pixel ratio for iOS to avoid canvas size limits
+          skipFonts: true,
+          width: Math.min(element.offsetWidth, 2048), // Limit size for iOS
+          height: Math.min(element.offsetHeight, 2048),
+        });
+      } catch (error) {
+        console.warn('iOS PNG generation failed, retrying with lower quality:', error);
+        // Fallback with even more conservative settings
+        await new Promise(resolve => setTimeout(resolve, 200));
+        dataUrl = await htmlToImage.toPng(element, {
+          cacheBust: true,
+          pixelRatio: 0.5,
+          skipFonts: true,
+          width: Math.min(element.offsetWidth, 1024),
+          height: Math.min(element.offsetHeight, 1024),
+        });
+      }
+    } else {
+      // Keep existing Android-working code unchanged
+      dataUrl = await htmlToImage.toPng(element, {
+        cacheBust: true,
+        pixelRatio: 2,
+        skipFonts: true,
+      });
+    }
+    
     if (element.parentElement) {
         element.parentElement.style.backgroundColor = '';
     }
-    return dataUrl
+    return dataUrl;
   };
 
   const handleDownload = async () => {
@@ -51,20 +89,59 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
 
     try {
       const dataUrl = await generateImage(resultCardRef.current);
-      const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], 'cosmic-quirk-prediction.png', { type: 'image/png' });
+      
+      if (isIOSSafari()) {
+        // iOS specific handling with additional timing and error handling
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          
+          if (blob.size === 0) {
+            throw new Error('Generated image is empty');
+          }
+          
+          const file = new File([blob], 'cosmic-quirk-prediction.png', { type: 'image/png' });
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'My Cosmic Quirk Prediction!',
-          text: `Check out my funny future prediction from Cosmic Quirks!`,
-        });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'My Cosmic Quirk Prediction!',
+              text: `Check out my funny future prediction from Cosmic Quirks!`,
+            });
+          } else {
+            // iOS fallback: try to copy image data URL to clipboard
+            try {
+              await navigator.clipboard.writeText('Check out my cosmic prediction! Download the image from Cosmic Quirks and share it manually.');
+              alert('Sharing not available. Link copied to clipboard! You can download the image using the Download button.');
+            } catch (clipboardError) {
+              alert('Sharing not supported on this device. Please use the Download button to save the image.');
+            }
+          }
+        } catch (shareError) {
+          console.warn('iOS sharing failed:', shareError);
+          alert('Unable to share the image. Please use the Download button to save it instead.');
+        }
       } else {
-        alert("Your browser doesn't support sharing files.");
+        // Keep existing Android-working code unchanged
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], 'cosmic-quirk-prediction.png', { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'My Cosmic Quirk Prediction!',
+            text: `Check out my funny future prediction from Cosmic Quirks!`,
+          });
+        } else {
+          alert("Your browser doesn't support sharing files.");
+        }
       }
     } catch (error) {
       console.error('oops, something went wrong!', error);
+      if (isIOSSafari()) {
+        alert('The cosmic energies are disrupted! Please try downloading the image instead.');
+      }
     }
   };
 

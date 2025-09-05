@@ -8,8 +8,12 @@ import { PredictionResult } from '@/components/prediction-result';
 import { getPrediction } from '@/app/actions';
 import type { CharacterMatchOutput } from '@/ai/flows/character-match';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+import { Header } from '@/components/header';
+import { SignInButton } from '@/components/auth/sign-in-button';
+import { Sparkles, Star, Users, Zap } from 'lucide-react';
 import ReactConfetti from 'react-confetti';
+import { Card, CardContent } from '@/components/ui/card';
 
 const loadingMessages = [
   'Consulting the celestial archives...',
@@ -25,6 +29,7 @@ export default function Home() {
   const [userName, setUserName] = useState('');
   const [userQuestion, setUserQuestion] = useState('');
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState<{width: number; height: number}>({width: 0, height: 0});
   const [currentYear, setCurrentYear] = useState<number | null>(null);
@@ -90,9 +95,11 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
-      {showConfetti && windowSize.width > 0 && <ReactConfetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={400} />}
-      <div className="w-full max-w-lg">
+    <>
+      <Header />
+      <main className="container mx-auto flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center p-4">
+        {showConfetti && windowSize.width > 0 && <ReactConfetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={400} />}
+        <div className="w-full max-w-lg">
         <div className="flex flex-col items-center justify-center text-center">
             <div className="mb-4 flex items-center gap-3">
               <Sparkles className="h-10 w-10 text-primary" />
@@ -118,6 +125,37 @@ export default function Home() {
           {result && (
             <>
               <PredictionResult result={result} name={userName} question={userQuestion} />
+              {!user && (
+                <Card className="mt-6 border-primary/20 bg-primary/5">
+                  <CardContent className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Star className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-medium">Unlock Your Unique Cosmic Signature!</p>
+                      <Star className="h-4 w-4 text-primary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      The universe whispers the same secrets to kindred spirits. Sign up for truly unique predictions!
+                    </p>
+                    <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground mb-3">
+                      <div className="flex items-center gap-1">
+                        <Zap className="h-3 w-3" />
+                        <span>More generations</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>Multiple forms</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Unique images</span>
+                      </div>
+                    </div>
+                    <SignInButton size="sm" className="w-full">
+                      Begin Your Mystical Journey
+                    </SignInButton>
+                  </CardContent>
+                </Card>
+              )}
               <button
                 onClick={() => {
                   setResult(null);
@@ -131,10 +169,11 @@ export default function Home() {
             </>
           )}
         </div>
-      </div>
-       <footer className="mt-8 text-center text-xs text-muted-foreground">
-        {currentYear && <p>&copy; {currentYear} Cosmic Quirks. For entertainment purposes only.</p>}
-      </footer>
-    </main>
+        </div>
+        <footer className="mt-8 text-center text-xs text-muted-foreground">
+          {currentYear && <p>&copy; {currentYear} Cosmic Quirks. For entertainment purposes only.</p>}
+        </footer>
+      </main>
+    </>
   );
 }
