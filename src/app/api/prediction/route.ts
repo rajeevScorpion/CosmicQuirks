@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const { name, month, year, question, formType } = validationResult.data;
 
     // Get user session
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const clientIP = getClientIP(request);
     

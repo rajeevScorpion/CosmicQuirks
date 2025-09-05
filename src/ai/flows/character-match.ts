@@ -26,6 +26,24 @@ function svgPlaceholder(title: string, subtitle: string) {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
+function testBanner(characterName: string) {
+  const safeName = characterName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+  <svg xmlns="http://www.w3.org/2000/svg" width="512" height="128">
+    <defs>
+      <linearGradient id="testGradient" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%" stop-color="#4F46E5"/>
+        <stop offset="100%" stop-color="#7C3AED"/>
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#testGradient)" rx="8"/>
+    <rect x="8" y="8" width="496" height="112" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="8,4" rx="4" opacity="0.7"/>
+    <text x="50%" y="50%" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-size="24" font-weight="bold" fill="#fff">🎭 ${safeName}</text>
+    <text x="50%" y="75%" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-size="14" fill="#fff" opacity="0.8">[TEST MODE - Image Generation Disabled]</text>
+  </svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+}
+
 const CharacterMatchInputSchema = z.object({
   name: z.string(),
   birthdate: z.string(),
@@ -97,40 +115,49 @@ export async function characterMatch(input: CharacterMatchInput): Promise<Charac
     throw new Error('Failed to parse character match response');
   }
 
-  // Generate a cartoonish image using OpenRouter's chat/completions endpoint
+  // Check if AI image generation is enabled
+  const enableImageGeneration = process.env.ENABLE_AI_IMAGE_GENERATION !== 'false';
+  
   let dataUri = '';
-  try {
-    const prompt = [
-      'Generate a cartoon illustration of a funny historical Indian character.',
-      'Style: playful caricature with thick outlines, flat shading, vibrant colors, Indian art-inspired.',
-      'Show a single front-facing bust portrait with historical Indian setting elements.',
-      'No text, letters, watermarks, or captions in the image.',
-      `Character Name: ${safe.data.characterName}`,
-      `Character Description: ${safe.data.characterDescription}`,
-      `User's Question Context: ${input.question}`,
-      'IMPORTANT: Make the image CONTEXTUALLY RELEVANT to the user\'s question:',
-      '- If about love/relationships: romantic expressions, flowers, heart symbols',
-      '- If about career/money: professional attire, tools of trade, confident pose',
-      '- If about health: peaceful expression, healing herbs, wellness symbols',
-      '- If about travel: adventure gear, maps, excited expression',
-      '- Visual elements should reflect both the character description AND question theme',
-      'Make it authentically Indian historical with humor and question relevance.',
-    ].join(' ');
+  
+  if (!enableImageGeneration) {
+    // Use test banner instead of generating image
+    dataUri = testBanner(safe.data.characterName);
+  } else {
+    // Generate a cartoonish image using OpenRouter's chat/completions endpoint
+    try {
+      const prompt = [
+        'Generate a cartoon illustration of a funny historical Indian character.',
+        'Style: playful caricature with thick outlines, flat shading, vibrant colors, Indian art-inspired.',
+        'Show a single front-facing bust portrait with historical Indian setting elements.',
+        'No text, letters, watermarks, or captions in the image.',
+        `Character Name: ${safe.data.characterName}`,
+        `Character Description: ${safe.data.characterDescription}`,
+        `User's Question Context: ${input.question}`,
+        'IMPORTANT: Make the image CONTEXTUALLY RELEVANT to the user\'s question:',
+        '- If about love/relationships: romantic expressions, flowers, heart symbols',
+        '- If about career/money: professional attire, tools of trade, confident pose',
+        '- If about health: peaceful expression, healing herbs, wellness symbols',
+        '- If about travel: adventure gear, maps, excited expression',
+        '- Visual elements should reflect both the character description AND question theme',
+        'Make it authentically Indian historical with humor and question relevance.',
+      ].join(' ');
 
-    // Use OpenRouter's chat-based image generation
-    dataUri = await generateImageViaChat(prompt);
-    
-    // If dataUri is empty or doesn't start with data:, it failed
-    if (!dataUri || !dataUri.startsWith('data:')) {
+      // Use OpenRouter's chat-based image generation
+      dataUri = await generateImageViaChat(prompt);
+      
+      // If dataUri is empty or doesn't start with data:, it failed
+      if (!dataUri || !dataUri.startsWith('data:')) {
+        dataUri = '';
+      }
+    } catch (err) {
+      console.error('Image generation failed:', err);
       dataUri = '';
     }
-  } catch (err) {
-    console.error('Image generation failed:', err);
-    dataUri = '';
-  }
 
-  if (!dataUri) {
-    dataUri = svgPlaceholder(safe.data.characterName, 'Cosmic Quirks');
+    if (!dataUri) {
+      dataUri = svgPlaceholder(safe.data.characterName, 'Cosmic Quirks');
+    }
   }
 
   return {
