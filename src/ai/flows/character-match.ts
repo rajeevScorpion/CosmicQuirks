@@ -44,12 +44,23 @@ export type CharacterMatchOutput = z.infer<typeof CharacterMatchOutputSchema>;
 export async function characterMatch(input: CharacterMatchInput): Promise<CharacterMatchOutput> {
   assertOpenRouterKey();
 
+  // Calculate historical birth year (50-500 years ago)
+  const currentYear = new Date().getFullYear();
+  const userBirthdate = new Date(input.birthdate);
+  const userMonth = userBirthdate.toLocaleString('default', { month: 'long' });
+  const historicalYear = currentYear - Math.floor(Math.random() * 450 + 50); // 50-500 years ago
+  
   // Ask for a compact JSON response we can parse safely.
   const system =
-    'You are a playful fortune teller. Return ONLY compact JSON with keys: characterName, characterDescription, prediction.';
+    'You are a playful fortune teller creating historical Indian characters. Return ONLY compact JSON with keys: characterName, characterDescription, prediction.';
   const user =
-    `Create a funny imaginary historical character (birthday-aligned) and a prediction.\n` +
-    `Name: ${input.name}\nBirthdate: ${input.birthdate}\nQuestion: ${input.question}`;
+    `Create a funny imaginary HISTORICAL INDIAN character and a prediction.\n` +
+    `User Name: ${input.name}\nUser Birth Month: ${userMonth}\nQuestion: ${input.question}\n\n` +
+    `IMPORTANT REQUIREMENTS:\n` +
+    `- characterName: Create a FUNNY TWISTED Indian version of "${input.name}" (NOT the same name, but a humorous Indian variation)\n` +
+    `- characterDescription: Historical Indian character born in ${userMonth} ${historicalYear} (${currentYear - historicalYear} years ago). MUST BE RELATED TO USER'S QUESTION: "${input.question}". Max 55 words. Include profession/role that connects to their question theme, visual details (clothing, accessories, expression), and one quirky habit\n` +
+    `- prediction: Base prediction on their question, character personality, and Indian cultural context\n` +
+    `- Make character's profession and story DIRECTLY RELEVANT to answering their question`;
 
   const completion = await openrouter.chat.completions.create({
     model: process.env.OPENROUTER_TEXT_MODEL || 'openai/gpt-4o-mini',
@@ -90,14 +101,20 @@ export async function characterMatch(input: CharacterMatchInput): Promise<Charac
   let dataUri = '';
   try {
     const prompt = [
-      'Generate a cartoon illustration of a funny historical character.',
-      'Style: playful caricature with thick outlines, flat shading, vibrant colors.',
-      'Show a single front-facing bust portrait.',
+      'Generate a cartoon illustration of a funny historical Indian character.',
+      'Style: playful caricature with thick outlines, flat shading, vibrant colors, Indian art-inspired.',
+      'Show a single front-facing bust portrait with historical Indian setting elements.',
       'No text, letters, watermarks, or captions in the image.',
-      `Character: ${safe.data.characterName}`,
-      `Description: ${safe.data.characterDescription}`,
-      `Theme: ${safe.data.prediction}`,
-      'Include expression and props that reflect the prediction theme.',
+      `Character Name: ${safe.data.characterName}`,
+      `Character Description: ${safe.data.characterDescription}`,
+      `User's Question Context: ${input.question}`,
+      'IMPORTANT: Make the image CONTEXTUALLY RELEVANT to the user\'s question:',
+      '- If about love/relationships: romantic expressions, flowers, heart symbols',
+      '- If about career/money: professional attire, tools of trade, confident pose',
+      '- If about health: peaceful expression, healing herbs, wellness symbols',
+      '- If about travel: adventure gear, maps, excited expression',
+      '- Visual elements should reflect both the character description AND question theme',
+      'Make it authentically Indian historical with humor and question relevance.',
     ].join(' ');
 
     // Use OpenRouter's chat-based image generation
