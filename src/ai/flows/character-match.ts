@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import { Buffer } from 'node:buffer';
-import { openai, assertOpenAIKey } from '@/ai/openai';
+import { openrouter, assertOpenRouterKey, generateImageViaChat } from '@/ai/openrouter';
 
 function svgPlaceholder(title: string, subtitle: string) {
   const safeTitle = (title || 'Cosmic Character').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -42,7 +42,7 @@ const CharacterMatchOutputSchema = z.object({
 export type CharacterMatchOutput = z.infer<typeof CharacterMatchOutputSchema>;
 
 export async function characterMatch(input: CharacterMatchInput): Promise<CharacterMatchOutput> {
-  assertOpenAIKey();
+  assertOpenRouterKey();
 
   // Ask for a compact JSON response we can parse safely.
   const system =
@@ -51,8 +51,8 @@ export async function characterMatch(input: CharacterMatchInput): Promise<Charac
     `Create a funny imaginary historical character (birthday-aligned) and a prediction.\n` +
     `Name: ${input.name}\nBirthdate: ${input.birthdate}\nQuestion: ${input.question}`;
 
-  const completion = await openai.chat.completions.create({
-    model: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini',
+  const completion = await openrouter.chat.completions.create({
+    model: process.env.OPENROUTER_TEXT_MODEL || 'openai/gpt-4o-mini',
     temperature: 0.8,
     response_format: { type: 'json_object' },
     messages: [
@@ -86,46 +86,30 @@ export async function characterMatch(input: CharacterMatchInput): Promise<Charac
     throw new Error('Failed to parse character match response');
   }
 
-  // Generate a cartoonish image as a data URI with graceful fallbacks
+  // Generate a cartoonish image using OpenRouter's chat/completions endpoint
   let dataUri = '';
   try {
     const prompt = [
-      'Generate a funny historical character matching the prediction.',
-      'Create a single, front-facing, bust portrait cartoon illustration.',
-      'Style: playful, caricature, thick outlines, flat shading, vibrant colors.',
-      'No text, no letters, no watermark, no captions.',
-      `Character: ${safe.data.characterName}.`,
-      `Bio: ${safe.data.characterDescription}.`,
-      `Prediction: ${safe.data.prediction}.`,
-      'Show expression and props that reflect the prediction theme.',
+      'Generate a cartoon illustration of a funny historical character.',
+      'Style: playful caricature with thick outlines, flat shading, vibrant colors.',
+      'Show a single front-facing bust portrait.',
+      'No text, letters, watermarks, or captions in the image.',
+      `Character: ${safe.data.characterName}`,
+      `Description: ${safe.data.characterDescription}`,
+      `Theme: ${safe.data.prediction}`,
+      'Include expression and props that reflect the prediction theme.',
     ].join(' ');
 
-    const image = await openai.images.generate({
-      model: process.env.OPENAI_IMAGE_MODEL || 'dall-e-3',
-      prompt,
-      size: '1024x1024',
-      response_format: 'b64_json',
-      // style: 'vivid', // uncomment if your endpoint supports style
-      // quality: 'high', // uncomment if supported
-      n: 1,
-    });
-    let b64 = image.data?.[0]?.b64_json ?? '';
-
-    // Fallback attempt with smaller size if empty
-    if (!b64) {
-      const retry = await openai.images.generate({
-        model: process.env.OPENAI_IMAGE_MODEL || 'dall-e-3',
-        prompt,
-        size: '1024x1024',
-        response_format: 'b64_json',
-        n: 1,
-      });
-      b64 = retry.data?.[0]?.b64_json ?? '';
+    // Use OpenRouter's chat-based image generation
+    dataUri = await generateImageViaChat(prompt);
+    
+    // If dataUri is empty or doesn't start with data:, it failed
+    if (!dataUri || !dataUri.startsWith('data:')) {
+      dataUri = '';
     }
-
-    dataUri = b64 ? `data:image/png;base64,${b64}` : '';
   } catch (err) {
     console.error('Image generation failed:', err);
+    dataUri = '';
   }
 
   if (!dataUri) {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock OpenAI client module used by the flow
-vi.mock('../src/ai/openai', () => {
+// Mock OpenRouter client module used by the flow
+vi.mock('../src/ai/openrouter', () => {
   const chatCreate = vi.fn(async () => ({
     choices: [
       {
@@ -18,24 +18,28 @@ vi.mock('../src/ai/openai', () => {
   const imagesGenerateOk = vi.fn(async () => ({ data: [{ b64_json: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ' }] }));
   const imagesGenerateFail = vi.fn(async () => { throw new Error('image blocked'); });
 
+  const generateImageViaChat = vi.fn(async () => '');
+  const generateImageViaChatOk = vi.fn(async () => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ');
+
   return {
-    openai: {
+    openrouter: {
       chat: { completions: { create: chatCreate } },
       images: { generate: imagesGenerateFail },
     },
-    assertOpenAIKey: () => {},
+    assertOpenRouterKey: () => {},
+    generateImageViaChat,
     // export helpers for test to switch behavior
-    __mocks: { chatCreate, imagesGenerateOk, imagesGenerateFail },
+    __mocks: { chatCreate, imagesGenerateOk, imagesGenerateFail, generateImageViaChatOk },
   };
 });
 
 // Important: import after mock
 import { characterMatch } from '../src/ai/flows/character-match';
-import * as openaiMod from '../src/ai/openai';
+import * as openrouterMod from '../src/ai/openrouter';
 
 describe('characterMatch', () => {
   beforeEach(() => {
-    process.env.OPENAI_API_KEY = 'test-key';
+    process.env.OPENROUTER_API_KEY = 'test-key';
   });
 
   it('parses JSON and returns placeholder image when image generation fails', async () => {
@@ -48,7 +52,7 @@ describe('characterMatch', () => {
 
   it('returns PNG data URI when image generation succeeds', async () => {
     // Swap to OK image generator
-    (openaiMod as any).openai.images.generate = (openaiMod as any).__mocks.imagesGenerateOk;
+    (openrouterMod as any).generateImageViaChat = (openrouterMod as any).__mocks.generateImageViaChatOk;
     const res = await characterMatch({ name: 'Sam', birthdate: '02-02-1992', question: 'Career?' });
     expect(res.characterImage.startsWith('data:image/png;base64,')).toBe(true);
   });

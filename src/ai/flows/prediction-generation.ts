@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { openai, assertOpenAIKey } from '@/ai/openai';
+import { openrouter, assertOpenRouterKey } from '@/ai/openrouter';
 
 const PredictionInputSchema = z.object({
   question: z.string(),
@@ -18,13 +18,13 @@ const PredictionOutputSchema = z.object({
 export type PredictionOutput = z.infer<typeof PredictionOutputSchema>;
 
 export async function generatePrediction(input: PredictionInput): Promise<PredictionOutput> {
-  assertOpenAIKey();
+  assertOpenRouterKey();
 
   const system = 'You write brief, humorous predictions. Output plain text only.';
   const user = `Question: ${input.question}\nStyle: ${input.character}`;
 
-  const completion = await openai.chat.completions.create({
-    model: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini',
+  const completion = await openrouter.chat.completions.create({
+    model: process.env.OPENROUTER_TEXT_MODEL || 'openai/gpt-4o-mini',
     temperature: 0.9,
     messages: [
       { role: 'system', content: system },
