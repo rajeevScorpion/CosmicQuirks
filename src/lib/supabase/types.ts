@@ -140,6 +140,83 @@ export type Database = {
         }
         Relationships: []
       }
+      prediction_results: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          user_id: string | null
+          client_ip: string | null
+          form_type: string
+          user_name: string
+          question: string
+          birth_month: string
+          birth_year: string
+          character_name: string
+          character_description: string
+          prediction_text: string
+          image_variants: Json | null
+          question_theme: string
+          generation_source: string
+          usage_count: number
+          last_used_at: string | null
+          is_active: boolean
+          metadata: Json
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string | null
+          client_ip?: string | null
+          form_type?: string
+          user_name: string
+          question: string
+          birth_month: string
+          birth_year: string
+          character_name: string
+          character_description: string
+          prediction_text: string
+          image_variants?: Json | null
+          question_theme?: string
+          generation_source?: string
+          usage_count?: number
+          last_used_at?: string | null
+          is_active?: boolean
+          metadata?: Json
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string | null
+          client_ip?: string | null
+          form_type?: string
+          user_name?: string
+          question?: string
+          birth_month?: string
+          birth_year?: string
+          character_name?: string
+          character_description?: string
+          prediction_text?: string
+          image_variants?: Json | null
+          question_theme?: string
+          generation_source?: string
+          usage_count?: number
+          last_used_at?: string | null
+          is_active?: boolean
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_tracking: {
         Row: {
           id: string
@@ -204,9 +281,26 @@ export type Database = {
 export type User = Database['public']['Tables']['users']['Row']
 export type Prediction = Database['public']['Tables']['predictions']['Row']
 export type ImageAsset = Database['public']['Tables']['image_assets']['Row']
+export type PredictionResult = Database['public']['Tables']['prediction_results']['Row']
 export type UsageTracking = Database['public']['Tables']['usage_tracking']['Row']
 
 export type UserInsert = Database['public']['Tables']['users']['Insert']
 export type PredictionInsert = Database['public']['Tables']['predictions']['Insert']
 export type ImageAssetInsert = Database['public']['Tables']['image_assets']['Insert']
+export type PredictionResultInsert = Database['public']['Tables']['prediction_results']['Insert']
 export type UsageTrackingInsert = Database['public']['Tables']['usage_tracking']['Insert']
+
+// Image variant types
+export interface ImageVariant {
+  url: string;
+  width: number;
+  height: number;
+  quality: number;
+  size_bytes: number;
+}
+
+export interface ImageVariants {
+  small: ImageVariant;
+  medium: ImageVariant;
+  large: ImageVariant;
+}

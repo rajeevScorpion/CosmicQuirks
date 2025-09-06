@@ -3,8 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { characterMatch, type CharacterMatchInput } from '@/ai/flows/character-match';
 import { checkUsageLimit, incrementUsage, getClientIP, checkFormAccess } from '@/lib/usage-tracking';
 import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate-limit';
-import { safeOptimizeImageForUserTier, isValidImageDataUri, type UserTier } from '@/lib/image-optimization';
-import type { PredictionResultInsert } from '@/lib/supabase/types';
+import { getAssetFromPool, generateCosmicPlaceholder, addAssetToPool } from '@/lib/asset-pool';
 import { z } from 'zod';
 
 const PredictionRequestSchema = z.object({
@@ -77,29 +76,107 @@ export async function POST(request: NextRequest) {
 
     const questionTheme = extractQuestionTheme(question);
     let result;
-    let generationSource = 'ai';
 
-    // Generate fresh AI prediction for all users (registered and unregistered)
-    const birthdate = `01-${month}-${year}`;
-    const input: CharacterMatchInput = {
-      name,
-      birthdate,
-      question,
-    };
+    if (user) {
+      // Registered users get fresh AI generation
+      const birthdate = `01-${month}-${year}`;
+      const input: CharacterMatchInput = {
+        name,
+        birthdate,
+        question,
+      };
 
-    try {
-      result = await characterMatch(input);
-      generationSource = 'ai';
-    } catch (error) {
-      console.error('AI prediction failed:', error);
-      return NextResponse.json(
-        {
-          error: 'Cosmic interference detected',
-          message: 'The oracle is experiencing mystical disturbances. Please try again in a few moments.',
-          code: 'AI_GENERATION_FAILED',
-        },
-        { status: 503 }
-      );
+      try {
+        result = await characterMatch(input);
+      } catch (error) {
+        console.error('AI prediction failed:', error);
+        return NextResponse.json(
+          {
+            error: 'Cosmic interference detected',
+            message: 'The oracle is experiencing mystical disturbances. Please try again in a few moments.',
+            code: 'AI_GENERATION_FAILED',
+          },
+          { status: 503 }
+        );
+      }
+    } else {
+      // Unregistered users get asset pool + fresh text
+      try {
+        // Try to get an image from asset pool
+        const poolAsset = await getAssetFromPool({
+          questionTheme,
+          formType,
+          excludeRecentlyUsed: true,
+          clientIdentifier: clientIP,
+        });
+
+        let characterImage: string;
+        let characterName: string;
+        let characterDescription: string;
+
+        if (poolAsset) {
+          // Use asset from pool
+          characterImage = poolAsset.image_url;
+          characterName = poolAsset.character_name;
+          characterDescription = poolAsset.character_description;
+        } else {
+          // Generate fresh content and add to pool
+          const birthdate = `01-${month}-${year}`;
+          const input: CharacterMatchInput = {
+            name,
+            birthdate,
+            question,
+          };
+
+          const freshResult = await characterMatch(input);
+          characterImage = freshResult.characterImage;
+          characterName = freshResult.characterName;
+          characterDescription = freshResult.characterDescription;
+
+          // Add to asset pool (async, don't wait)
+          if (characterImage && characterImage.startsWith('data:image/') && !characterImage.includes('svg')) {
+            addAssetToPool({
+              image_url: characterImage,
+              character_name: characterName,
+              character_description: characterDescription,
+              question_theme: questionTheme,
+              form_type: formType,
+              metadata: {
+                generated_at: new Date().toISOString(),
+                source: 'unregistered_user',
+              },
+              is_active: true,
+            }).catch(err => console.error('Failed to add asset to pool:', err));
+          }
+        }
+
+        // Always generate fresh prediction text
+        const birthdate = `01-${month}-${year}`;
+        const input: CharacterMatchInput = {
+          name,
+          birthdate,
+          question,
+        };
+
+        const textResult = await characterMatch(input);
+
+        result = {
+          characterName,
+          characterDescription,
+          characterImage,
+          prediction: textResult.prediction,
+        };
+      } catch (error) {
+        console.error('Asset pool generation failed:', error);
+        return NextResponse.json(
+          {
+            error: 'Cosmic interference detected',
+            message: 'The oracle is experiencing mystical disturbances. Please try again in a few moments.',
+            code: 'AI_GENERATION_FAILED',
+          },
+          { status: 503 }
+        );
+      }
     }
 
     // Validate result
@@ -114,70 +191,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine user tier for image optimization
-    const userTier: UserTier = user ? 
-      (user.user_metadata?.plan_type === 'premium' ? 'premium' : 'registered') : 
-      'unregistered';
-
-    // Optimize image if we have a fresh AI-generated image
-    let imageVariants = null;
-    let finalCharacterImage = result.characterImage;
-
-    if (result.characterImage && isValidImageDataUri(result.characterImage)) {
-      try {
-        const optimizedVariants = await safeOptimizeImageForUserTier(result.characterImage, userTier);
-        if (optimizedVariants) {
-          imageVariants = optimizedVariants;
-          // Use appropriate variant for the response based on user tier
-          finalCharacterImage = getImageForUserType(optimizedVariants, userTier);
-        }
-      } catch (error) {
-        console.error('Image optimization failed, using original:', error);
-        // Continue with original image if optimization fails
-      }
-    }
-
-    // SECURITY-FIRST: Only save to database for authenticated users
-    if (user) {
-      try {
-        const predictionData: PredictionResultInsert = {
+    // Save prediction to database (for registered users and asset pool)
+    try {
+      if (user) {
+        // Save full prediction for registered user
+        await supabase.from('predictions').insert({
           user_id: user.id,
-          client_ip: clientIP,
           form_type: formType,
-          user_name: name,
-          question,
-          birth_month: month,
-          birth_year: year,
           character_name: result.characterName,
           character_description: result.characterDescription,
           prediction_text: result.prediction,
-          image_variants: imageVariants,
-          question_theme: questionTheme,
-          generation_source: generationSource,
-          usage_count: 1,
-          last_used_at: new Date().toISOString(),
-          is_active: true,
+          question,
+          user_name: name,
+          birth_month: month,
+          birth_year: year,
+          image_url: result.characterImage,
           metadata: {
             generated_at: new Date().toISOString(),
             client_ip: clientIP,
-            user_type: userType,
-            user_tier: userTier,
-            optimization_success: !!imageVariants,
           },
-        };
-
-        const { error: insertError } = await supabase
-          .from('prediction_results')
-          .insert(predictionData);
-
-        if (insertError) {
-          console.error('Database save failed:', insertError);
-          // Don't fail the request if DB save fails - user still gets their prediction
-        }
-      } catch (dbError) {
-        console.error('Database operation failed:', dbError);
-        // Don't fail the request if DB save fails
+        });
       }
+
+      // Save image to asset pool (if it's a real image, not SVG placeholder)
+      if (result.characterImage && result.characterImage.startsWith('data:image/') && !result.characterImage.includes('svg')) {
+        await supabase.from('image_assets').insert({
+          image_url: result.characterImage,
+          character_name: result.characterName,
+          character_description: result.characterDescription,
+          question_theme: extractQuestionTheme(question),
+          form_type: formType,
+          metadata: {
+            generated_at: new Date().toISOString(),
+            original_question: question,
+            user_name: name, // For context, not identification
+          },
+        });
+      }
+    } catch (dbError) {
+      console.error('Database save failed:', dbError);
+      // Don't fail the request if DB save fails - user still gets their prediction
     }
 
     // Increment usage counter
@@ -191,23 +244,12 @@ export async function POST(request: NextRequest) {
     }
 
     const finalResult = {
-      characterName: result.characterName,
-      characterDescription: result.characterDescription,
-      characterImage: finalCharacterImage,
+      ...result,
       prediction: `${predictionPrefix} ${result.prediction}`,
       metadata: {
         userType,
-        userTier,
         usageRemaining: usageCheck.limit - usageCheck.used - 1,
         formType,
-        generationSource,
-        hasOptimizedImages: !!imageVariants,
-        savedToDatabase: !!user, // Indicate if result was saved to database
-        imageSizeInfo: imageVariants ? {
-          small: `${Math.round(imageVariants.small.size_bytes / 1024)}KB`,
-          medium: `${Math.round(imageVariants.medium.size_bytes / 1024)}KB`,
-          large: `${Math.round(imageVariants.large.size_bytes / 1024)}KB`,
-        } : null,
       },
     };
 
@@ -229,34 +271,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to get appropriate image variant based on user tier
-function getImageForUserType(
-  imageVariants: any,
-  userTier: UserTier
-): string {
-  if (!imageVariants) {
-    return ''; // Will fallback to SVG placeholder
-  }
-
-  if (typeof imageVariants === 'string') {
-    // Legacy single image format or original image
-    return imageVariants;
-  }
-
-  // Use optimized variants based on user tier
-  switch (userTier) {
-    case 'unregistered':
-      return imageVariants.small?.url || imageVariants.medium?.url || '';
-    case 'registered':
-      return imageVariants.medium?.url || imageVariants.large?.url || imageVariants.small?.url || '';
-    case 'premium':
-      return imageVariants.large?.url || imageVariants.medium?.url || '';
-    default:
-      return imageVariants.medium?.url || '';
-  }
-}
-
-// Helper functions (unchanged from original)
+// Helper functions
 function calculateAge(year: number, month: number): number {
   const birthDate = new Date(year, month - 1, 1);
   const today = new Date();

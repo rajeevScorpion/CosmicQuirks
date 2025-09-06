@@ -112,6 +112,13 @@ This is a **mobile-first app** - all development, testing, and design decisions 
 - Verify connection strings and keys are correct
 - Ensure database migrations have been run
 
+**"Authentication timeout (ERR_CONNECTION_TIMED_OUT)"**
+- **MOST COMMON ISSUE**: Supabase free tier projects pause after 7 days of inactivity
+- Go to your Supabase dashboard and check if the project is paused
+- Click "Resume project" if it's paused
+- Wait a few minutes for the project to fully restart
+- Test authentication again
+
 **"Google sign-in not working"**
 - Verify Google OAuth is configured in Supabase
 - Check redirect URLs match exactly
@@ -120,6 +127,11 @@ This is a **mobile-first app** - all development, testing, and design decisions 
 **"Rate limiting too aggressive"**
 - Set `SKIP_RATE_LIMITS=true` for development
 - Adjust rate limit values in `src/lib/rate-limit.ts`
+
+**"AI Image Generation disabled but auth still works"**
+- `ENABLE_AI_IMAGE_GENERATION=false` is for development/testing purposes
+- This setting does NOT affect authentication functionality
+- Keep this setting to save costs and speed up testing
 
 ### Support
 

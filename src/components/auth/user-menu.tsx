@@ -1,6 +1,7 @@
 'use client';
 
 import { LogOut, User, Sparkles, BarChart3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 export function UserMenu() {
   const { user, dbUser, signOut } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
@@ -79,7 +81,7 @@ export function UserMenu() {
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>
+        <DropdownMenuItem onClick={() => router.push('/dashboard')}>
           <BarChart3 className="mr-2 h-4 w-4" />
           <span>My Predictions</span>
         </DropdownMenuItem>

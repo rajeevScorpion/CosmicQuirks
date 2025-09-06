@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Download, Share2, Gift } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
@@ -9,6 +9,10 @@ import * as htmlToImage from 'html-to-image';
 import type { CharacterMatchOutput } from '@/ai/flows/character-match';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { SignupIncentiveModal } from '@/components/signup-incentive-modal';
+import { EmailAuthForm } from '@/components/auth/email-auth-form';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/auth-context';
 
 interface PredictionResultProps {
   result: CharacterMatchOutput;
@@ -18,6 +22,20 @@ interface PredictionResultProps {
 
 export function PredictionResult({ result, name, question }: PredictionResultProps) {
   const resultCardRef = useRef<HTMLDivElement>(null);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const { user, loading } = useAuth();
+
+  // Show the signup modal after a short delay for unregistered users
+  useEffect(() => {
+    if (!loading && !user) {
+      const timer = setTimeout(() => {
+        setShowSignupModal(true);
+      }, 2000); // Show modal 2 seconds after results appear
+
+      return () => clearTimeout(timer);
+    }
+  }, [user, loading]);
 
   const isIOSSafari = () => {
     const ua = navigator.userAgent;
@@ -145,63 +163,85 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
     }
   };
 
+  const handleSignupClick = () => {
+    setShowAuthDialog(true);
+  };
+
+  const handleContinueWithoutSignup = () => {
+    // Just close the modal, allow user to continue with download/share
+  };
+
   return (
-    <div className="w-full max-w-lg animate-in fade-in-50 zoom-in-95 duration-500">
-      <div ref={resultCardRef} className="p-4 bg-transparent">
-        <Card className="overflow-hidden rounded-2xl border-2 border-primary/20 shadow-lg">
-          <CardContent className="p-0">
-            <div className="bg-card p-6 text-center">
-                <div className="flex justify-center items-center mb-4">
-                    <Gift className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold">A Birthday Match for {name}!</h2>
-                <p className="text-muted-foreground">You share a birthday with...</p>
-            </div>
-            
-            <div className="p-6 bg-muted/30">
-                <div className="w-full aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden border">
-                    <Image
-                        src={result.characterImage}
-                        alt={`Image of ${result.characterName}`}
-                        width={400}
-                        height={400}
-                        className="object-cover w-full h-full"
-                        data-ai-hint="character portrait"
-                    />
-                </div>
-                <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
-                <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
-            </div>
-            
-            <div className="bg-card p-6 text-center">
-                <h3 className="text-xl font-bold">Question</h3>
-                <p className="text-foreground/90 mt-2 line-clamp-2">
-                  {question}
-                </p>
-                <div className="my-4 h-px w-20 bg-primary/20 mx-auto" />
-                <h3 className="text-2xl font-bold text-primary">Your Cosmic Prediction</h3>
-                <p className="text-foreground/90 mt-4">
-                    {result.prediction}
-                </p>
-                <p className="text-xs text-primary mt-4 text-center">
-                  cosmicQuirks.in
-                </p>
-            </div>
+    <>
+      <SignupIncentiveModal
+        isOpen={showSignupModal}
+        onClose={() => setShowSignupModal(false)}
+        onSignupClick={handleSignupClick}
+        onContinueWithoutSignup={handleContinueWithoutSignup}
+      />
+      
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="sm:max-w-md">
+          <EmailAuthForm onClose={() => setShowAuthDialog(false)} />
+        </DialogContent>
+      </Dialog>
 
-          </CardContent>
-        </Card>
-      </div>
+      <div className="w-full max-w-lg animate-in fade-in-50 zoom-in-95 duration-500">
+        <div ref={resultCardRef} className="p-4 bg-transparent">
+          <Card className="overflow-hidden rounded-2xl border-2 border-primary/20 shadow-lg">
+            <CardContent className="p-0">
+              <div className="bg-card p-6 text-center">
+                  <div className="flex justify-center items-center mb-4">
+                      <Gift className="w-8 h-8 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold">A Birthday Match for {name}!</h2>
+                  <p className="text-muted-foreground">You share a birthday with...</p>
+              </div>
+              
+              <div className="p-6 bg-muted/30">
+                  <div className="w-full aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden border">
+                      <Image
+                          src={result.characterImage}
+                          alt={`Image of ${result.characterName}`}
+                          width={400}
+                          height={400}
+                          className="object-cover w-full h-full"
+                          data-ai-hint="character portrait"
+                      />
+                  </div>
+                  <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
+                  <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
+              </div>
+              
+              <div className="bg-card p-6 text-center">
+                  <h3 className="text-xl font-bold">Question</h3>
+                  <p className="text-foreground/90 mt-2 line-clamp-2">
+                    {question}
+                  </p>
+                  <div className="my-4 h-px w-20 bg-primary/20 mx-auto" />
+                  <h3 className="text-2xl font-bold text-primary">Your Cosmic Prediction</h3>
+                  <p className="text-foreground/90 mt-4">
+                      {result.prediction}
+                  </p>
+                  <p className="text-xs text-primary mt-4 text-center">
+                    cosmicQuirks.in
+                  </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="mt-4 flex justify-center gap-2">
-        <Button onClick={handleDownload} variant="outline" size="sm">
-          <Download />
-          Download
-        </Button>
-        <Button onClick={handleShare} size="sm">
-          <Share2 />
-          Share
-        </Button>
+        <div className="mt-4 flex justify-center gap-2">
+          <Button onClick={handleDownload} variant="outline" size="sm">
+            <Download />
+            Download
+          </Button>
+          <Button onClick={handleShare} size="sm">
+            <Share2 />
+            Share
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
