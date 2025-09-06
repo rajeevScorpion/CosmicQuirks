@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Sparkles, Calendar, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/lib/supabase/client';
+import { PredictionModal } from '@/components/prediction-modal';
 import Image from 'next/image';
 
 interface ImageVariants {
@@ -51,6 +52,8 @@ export default function DashboardPage() {
   const [predictions, setPredictions] = useState<PredictionResult[]>([]);
   const [loadingPredictions, setLoadingPredictions] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPrediction, setSelectedPrediction] = useState<PredictionResult | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -123,6 +126,16 @@ export default function DashboardPage() {
 
     // Prefer medium, then small, then large
     return imageVariants.medium?.url || imageVariants.small?.url || imageVariants.large?.url || getImageUrl(null);
+  };
+
+  const handlePredictionClick = (prediction: PredictionResult) => {
+    setSelectedPrediction(prediction);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedPrediction(null);
   };
 
   if (loading) {
@@ -228,7 +241,11 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {predictions.map((prediction) => (
-              <Card key={prediction.id} className="overflow-hidden border-primary/20 hover:border-primary/40 transition-colors">
+              <Card 
+                key={prediction.id} 
+                className="group overflow-hidden border-primary/20 hover:border-primary/40 transition-all duration-200 cursor-pointer hover:scale-[1.02] hover:shadow-lg"
+                onClick={() => handlePredictionClick(prediction)}
+              >
                 <CardHeader className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -263,9 +280,14 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
-                    <Calendar className="w-3 h-3" />
-                    {formatDate(prediction.created_at)}
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3 h-3" />
+                      {formatDate(prediction.created_at)}
+                    </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity text-primary font-medium">
+                      Click to view
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -273,6 +295,13 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Prediction Modal */}
+      <PredictionModal
+        prediction={selectedPrediction}
+        isOpen={modalOpen}
+        onClose={handleModalClose}
+      />
     </div>
   );
 }

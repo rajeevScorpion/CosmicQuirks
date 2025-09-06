@@ -20,7 +20,11 @@
       "Bash(git push:*)",
       "Bash(taskkill:*)",
       "Bash(npm test:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(dir /b database-migrations)",
+      "Bash(dir database-migrations)",
+      "Bash(powershell:*)",
+      "Bash(del debug-user-session.js)"
     ],
     "deny": [],
     "ask": []

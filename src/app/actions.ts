@@ -2,6 +2,7 @@
 'use server';
 
 import type { CharacterMatchOutput } from '@/ai/flows/character-match';
+import { cookies } from 'next/headers';
 
 export async function getPrediction(data: { 
   name: string; 
@@ -18,6 +19,12 @@ export async function getPrediction(data: {
   }
 
   try {
+    // Get cookies to forward authentication
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll()
+      .map(cookie => `${cookie.name}=${cookie.value}`)
+      .join('; ');
+
     // Call our new API endpoint
     const baseURL = process.env.NODE_ENV === 'production' 
       ? process.env.NEXTAUTH_URL || 'https://cosmicquirks.in'
@@ -27,6 +34,7 @@ export async function getPrediction(data: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': cookieHeader, // Forward authentication cookies
       },
       body: JSON.stringify({
         name: data.name,
