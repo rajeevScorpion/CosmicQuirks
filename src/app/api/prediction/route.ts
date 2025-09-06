@@ -130,10 +130,12 @@ export async function POST(request: NextRequest) {
           imageVariants = optimizedVariants;
           // Use appropriate variant for the response based on user tier
           finalCharacterImage = getImageForUserType(optimizedVariants, userTier);
+        } else {
+          finalCharacterImage = result.characterImage;
         }
       } catch (error) {
         console.error('Image optimization failed, using original:', error);
-        // Continue with original image if optimization fails
+        finalCharacterImage = result.characterImage;
       }
     }
 

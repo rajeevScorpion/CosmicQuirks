@@ -24,7 +24,9 @@
       "Bash(dir /b database-migrations)",
       "Bash(dir database-migrations)",
       "Bash(powershell:*)",
-      "Bash(del debug-user-session.js)"
+      "Bash(del debug-user-session.js)",
+      "Bash(del debug-image.mjs)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +44,8 @@ interface PredictionResult {
   character_description: string;
   image_variants: ImageVariants | null;
   prediction_text: string;
+  birth_month: string;
+  birth_year: string;
 }
 
 export default function DashboardPage() {
@@ -54,6 +56,9 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedPrediction, setSelectedPrediction] = useState<PredictionResult | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -69,11 +74,52 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  // Check if mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Intersection observer for mobile animations
+  useEffect(() => {
+    if (!isMobile || predictions.length === 0) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const imageElement = entry.target.querySelector('.animate-image-mobile');
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            imageElement?.classList.add('in-view');
+          } else {
+            imageElement?.classList.remove('in-view');
+          }
+        });
+      },
+      { threshold: [0, 0.5, 1] }
+    );
+
+    cardRefs.current.forEach((ref) => {
+      if (ref) observerRef.current?.observe(ref);
+    });
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [isMobile, predictions.length]);
+
   const fetchPredictions = async () => {
     try {
       const { data, error } = await supabase
         .from('prediction_results')
-        .select('*')
+        .select('id, created_at, user_name, question, character_name, character_description, image_variants, prediction_text, birth_month, birth_year')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
@@ -90,6 +136,15 @@ export default function DashboardPage() {
     } finally {
       setLoadingPredictions(false);
     }
+  };
+
+  const getMonthName = (monthNumber: string): string => {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const monthIndex = parseInt(monthNumber) - 1;
+    return months[monthIndex] || 'Unknown';
   };
 
   const formatDate = (dateString: string) => {
@@ -137,6 +192,23 @@ export default function DashboardPage() {
     setModalOpen(false);
     setSelectedPrediction(null);
   };
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((index: number) => {
+    if (!isMobile) return;
+    
+    const imageElement = cardRefs.current[index]?.querySelector('.animate-image-mobile');
+    imageElement?.classList.add('tap-hold');
+  }, [isMobile]);
+
+  const handleTouchEnd = useCallback((index: number) => {
+    if (!isMobile) return;
+    
+    const imageElement = cardRefs.current[index]?.querySelector('.animate-image-mobile');
+    setTimeout(() => {
+      imageElement?.classList.remove('tap-hold');
+    }, 150);
+  }, [isMobile]);
 
   if (loading) {
     return (
@@ -239,60 +311,91 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {predictions.map((prediction) => (
-              <Card 
-                key={prediction.id} 
-                className="group overflow-hidden border-primary/20 hover:border-primary/40 transition-all duration-200 cursor-pointer hover:scale-[1.02] hover:shadow-lg"
-                onClick={() => handlePredictionClick(prediction)}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg line-clamp-2">{prediction.character_name}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {prediction.character_description}
-                      </p>
-                    </div>
-                    <div className="w-16 h-16 rounded-lg overflow-hidden border bg-muted ml-3 shrink-0">
+          <>
+            {/* Info text for desktop users */}
+            <div className="text-center mb-6 hidden md:block">
+              <p className="text-sm text-muted-foreground">
+                Hover over cards to see them come to life ✨
+              </p>
+            </div>
+            
+            <div className="masonry-grid md:columns-2 lg:columns-3 gap-6 space-y-6">
+              {predictions.map((prediction, index) => (
+                <Card 
+                  key={prediction.id} 
+                  ref={(el) => {
+                    cardRefs.current[index] = el;
+                  }}
+                  className={`group break-inside-avoid mb-6 overflow-hidden border-primary/20 hover:border-primary/40 transition-all duration-500 cursor-pointer bg-card/80 backdrop-blur-sm ${
+                    isMobile ? 'animate-card-mobile mobile-card' : 'animate-card-hover'
+                  }`}
+                  onClick={() => handlePredictionClick(prediction)}
+                  onTouchStart={() => handleTouchStart(index)}
+                  onTouchEnd={() => handleTouchEnd(index)}
+                >
+                  {/* 12px padding around the box */}
+                  <div className="p-3">
+                    {/* Character Image Section */}
+                    <div className="relative w-full h-48 md:h-48 sm:h-36 bg-gradient-to-br from-primary/10 to-primary/5 overflow-hidden rounded-lg mb-4">
                       <Image
                         src={getImageUrl(prediction.image_variants)}
                         alt={prediction.character_name}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
+                        width={300}
+                        height={192}
+                        className={`w-full h-full object-cover transition-all duration-700 ease-in-out ${
+                          isMobile ? 'animate-image-mobile' : 'animate-image-hover group-hover:scale-110'
+                        }`}
                       />
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-3">
-                  <div>
-                    <div className="text-sm font-medium text-primary mb-1">Your Question:</div>
-                    <div className="text-sm text-muted-foreground line-clamp-2">
-                      {prediction.question}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-sm font-medium text-primary mb-1">Prediction:</div>
-                    <div className="text-sm line-clamp-3">
-                      {prediction.prediction_text}
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground pt-2 border-t">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3 h-3" />
-                      {formatDate(prediction.created_at)}
-                    </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity text-primary font-medium">
-                      Click to view
+                    {/* All content centered */}
+                    <div className="text-center space-y-3">
+                      {/* Character Name */}
+                      <h3 className="text-lg font-bold text-foreground leading-tight">
+                        {prediction.character_name}
+                      </h3>
+
+                      {/* Birth Info */}
+                      <p className="text-sm text-muted-foreground">
+                        Born in {getMonthName(prediction.birth_month)} {prediction.birth_year}
+                      </p>
+
+                      {/* Character Description - truncated */}
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {prediction.character_description}
+                      </p>
+
+                      {/* Form Name's Asked */}
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-primary">
+                          {prediction.user_name}'s Asked
+                        </div>
+                        <div className="text-sm text-foreground line-clamp-2">
+                          {prediction.question}
+                        </div>
+                      </div>
+                      
+                      {/* Prediction - Full Text */}
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-primary">Prediction</div>
+                        <div className="text-sm text-muted-foreground leading-relaxed">
+                          {prediction.prediction_text}
+                        </div>
+                      </div>
+
+                      {/* Line separator */}
+                      <div className="border-t border-primary/20 pt-3 mt-4">
+                        <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(prediction.created_at)}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

@@ -86,3 +86,108 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Masonry Grid for Dashboard Gallery */
+@layer components {
+  .masonry-grid {
+    column-gap: 1.5rem;
+  }
+  
+  .masonry-grid .break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+  }
+}
+
+/* Card Animations */
+@layer utilities {
+  /* Desktop hover animations */
+  @media (hover: hover) and (pointer: fine) {
+    .animate-card-hover {
+      transform-origin: center;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .animate-card-hover:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(var(--primary), 0.1);
+    }
+    
+    .animate-image-hover {
+      transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .group:hover .animate-image-hover {
+      transform: scale(1.1) translateX(5px);
+    }
+  }
+  
+  /* Mobile animations - triggered by intersection observer */
+  @media (hover: none) {
+    .animate-card-mobile {
+      transition: all 0.3s ease-in-out;
+    }
+    
+    .animate-image-mobile {
+      transition: transform 0.8s ease-in-out;
+    }
+    
+    .animate-image-mobile.in-view {
+      animation: mobileImageFloat 3s ease-in-out infinite;
+    }
+    
+    .animate-image-mobile.tap-hold {
+      transform: scale(1.05) rotate(2deg);
+    }
+  }
+  
+  /* Mobile-specific layout */
+  @media (max-width: 768px) {
+    .masonry-grid {
+      columns: 2;
+      column-gap: 1rem;
+    }
+    
+    .masonry-grid .break-inside-avoid {
+      margin-bottom: 1rem;
+    }
+    
+    /* Scale down text and spacing */
+    .mobile-card {
+      font-size: 0.9em;
+    }
+    
+    .mobile-card .space-y-3 > * + * {
+      margin-top: 0.5rem;
+    }
+    
+    .mobile-card h3 {
+      font-size: 1rem;
+    }
+    
+    .mobile-card .text-sm {
+      font-size: 0.75rem;
+    }
+    
+    .mobile-card .text-xs {
+      font-size: 0.625rem;
+    }
+  }
+}
+
+/* Keyframes for mobile animations */
+@keyframes mobileImageFloat {
+  0%, 100% { 
+    transform: translateY(0px) scale(1);
+  }
+  25% { 
+    transform: translateY(-2px) scale(1.02) rotate(1deg);
+  }
+  50% { 
+    transform: translateY(0px) scale(1.01) rotate(0deg);
+  }
+  75% { 
+    transform: translateY(-1px) scale(1.02) rotate(-1deg);
+  }
+}

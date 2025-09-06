@@ -197,7 +197,8 @@ export function isValidImageDataUri(dataUri: string): boolean {
   }
 
   // Check if it's not an SVG (we don't want to optimize SVGs)
-  if (dataUri.includes('svg')) {
+  // Only check the header part, not the base64 data
+  if (parts[0].toLowerCase().includes('svg')) {
     return false;
   }
 

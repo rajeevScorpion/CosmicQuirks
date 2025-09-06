@@ -42,6 +42,8 @@ interface PredictionResult {
   character_description: string;
   image_variants: ImageVariants | null;
   prediction_text: string;
+  birth_month?: string;
+  birth_year?: string;
 }
 
 interface PredictionModalProps {
