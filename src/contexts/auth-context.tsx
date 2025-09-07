@@ -60,17 +60,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set mounted flag
     setMounted(true);
+    let initialTimeout: NodeJS.Timeout;
 
-    // Debug environment variables
-    if (typeof window !== 'undefined') {
-      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-      console.log('Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-    }
-
-    // Get initial session with better error handling
+    // Get initial session with better error handling and timeout
     const getSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Add a race condition between auth check and timeout
+        const authPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth timeout')), 3000)
+        );
+        
+        const { data: { session }, error } = await Promise.race([
+          authPromise,
+          timeoutPromise
+        ]) as any;
         
         if (error) {
           console.error('Error getting session:', error);
@@ -84,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchDbUser(session.user.id);
         }
       } catch (error) {
-        console.error('Error in getSession:', error);
+        // Auth timeout or other error - just proceed without auth
         setUser(null);
         setDbUser(null);
       } finally {
@@ -92,7 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    getSession();
+    // Set shorter fallback timeout
+    initialTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+
+    getSession().finally(() => {
+      clearTimeout(initialTimeout);
+    });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -102,27 +113,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (session?.user) {
             await fetchDbUser(session.user.id);
-            
           } else {
             setDbUser(null);
           }
         } catch (error) {
           console.error('Error in auth state change:', error);
-        } finally {
-          setLoading(false);
         }
       }
     );
 
-    // Fallback timeout to ensure loading state is cleared
-    const timeoutId = setTimeout(() => {
-      console.warn('Auth loading timeout reached - forcing loading to false');
-      setLoading(false);
-    }, 10000); // 10 second timeout
-
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeoutId);
+      clearTimeout(initialTimeout);
     };
   }, []);
 
