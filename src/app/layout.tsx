@@ -2,6 +2,7 @@ import type {Metadata, Viewport} from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/contexts/auth-context';
 import { PWAInstaller } from '@/components/pwa-installer';
+import { Header } from '@/components/header';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -46,6 +47,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AuthProvider>
           <PWAInstaller />
+          <Header />
           {children}
           <Toaster />
         </AuthProvider>

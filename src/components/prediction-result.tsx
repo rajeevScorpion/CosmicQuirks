@@ -3,7 +3,8 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Download, Share2, Gift } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Download, Share2, Gift, Save, Check, ExternalLink } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 import type { CharacterMatchOutput } from '@/ai/flows/character-match';
@@ -13,18 +14,30 @@ import { SignupIncentiveModal } from '@/components/signup-incentive-modal';
 import { EmailAuthForm } from '@/components/auth/email-auth-form';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 
-interface PredictionResultProps {
-  result: CharacterMatchOutput;
-  name: string;
-  question: string;
+interface PredictionWithOrigin extends CharacterMatchOutput {
+  origin?: 'guest' | 'authed';
+  isPreAuthResult?: boolean;
 }
 
-export function PredictionResult({ result, name, question }: PredictionResultProps) {
+interface PredictionResultProps {
+  result: PredictionWithOrigin;
+  name: string;
+  question: string;
+  birthMonth: string;
+  birthYear: string;
+}
+
+export function PredictionResult({ result, name, question, birthMonth, birthYear }: PredictionResultProps) {
   const resultCardRef = useRef<HTMLDivElement>(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const { user, loading } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
 
   // Show the signup modal after a short delay for unregistered users
   useEffect(() => {
@@ -171,6 +184,59 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
     // Just close the modal, allow user to continue with download/share
   };
 
+  const handleSaveToDashboard = async () => {
+    if (!user || isSaved || isSaving || result.origin !== 'guest') return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/prediction/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          month: birthMonth,
+          year: birthYear,
+          question,
+          characterName: result.characterName,
+          characterDescription: result.characterDescription,
+          prediction: result.prediction,
+          characterImage: result.characterImage,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsSaved(true);
+        toast({
+          title: 'Saved to your dashboard!',
+          description: 'Your prediction has been successfully saved.',
+        });
+      } else {
+        throw new Error(data.message || 'Failed to save prediction');
+      }
+    } catch (error) {
+      console.error('Failed to save prediction:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Could not save prediction',
+        description: error instanceof Error ? error.message : 'Please try again.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const shouldShowSaveButton = () => {
+    return user && !loading && result.origin === 'guest' && !isSaved;
+  };
+
+  const shouldShowSavedStatus = () => {
+    return user && !loading && (result.origin === 'authed' || isSaved);
+  };
+
   return (
     <>
       <SignupIncentiveModal
@@ -233,7 +299,7 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
           </Card>
         </div>
 
-        <div className="mt-4 flex justify-center gap-2">
+        <div className="mt-4 flex justify-center gap-2 flex-wrap">
           <Button onClick={handleDownload} variant="outline" size="sm">
             <Download />
             Download
@@ -242,6 +308,32 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
             <Share2 />
             Share
           </Button>
+          {shouldShowSaveButton() && (
+            <Button 
+              onClick={handleSaveToDashboard} 
+              variant="outline" 
+              size="sm"
+              disabled={isSaving}
+            >
+              <Save className="mr-1" />
+              {isSaving ? 'Saving...' : 'Save to Dashboard'}
+            </Button>
+          )}
+          {shouldShowSavedStatus() && (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <Check className="w-4 h-4" />
+              <span>Saved ✓</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2"
+                onClick={() => router.push('/dashboard')}
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span className="ml-1">View in Dashboard</span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </>

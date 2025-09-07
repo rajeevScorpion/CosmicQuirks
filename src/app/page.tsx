@@ -9,7 +9,6 @@ import { getPrediction } from '@/app/actions';
 import type { CharacterMatchOutput } from '@/ai/flows/character-match';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { Header } from '@/components/header';
 import { SignInButton } from '@/components/auth/sign-in-button';
 import { Sparkles, Star, Users, Zap } from 'lucide-react';
 import ReactConfetti from 'react-confetti';
@@ -24,11 +23,18 @@ const loadingMessages = [
   'Decoding ancient prophecies...',
 ];
 
+interface PredictionWithOrigin extends CharacterMatchOutput {
+  origin: 'guest' | 'authed';
+  isPreAuthResult?: boolean;
+}
+
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<CharacterMatchOutput | null>(null);
+  const [result, setResult] = useState<PredictionWithOrigin | null>(null);
   const [userName, setUserName] = useState('');
   const [userQuestion, setUserQuestion] = useState('');
+  const [userBirthMonth, setUserBirthMonth] = useState('');
+  const [userBirthYear, setUserBirthYear] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
   const { canGenerate, used, limit, incrementUsage } = useUnauthLimit();
@@ -89,6 +95,8 @@ export default function Home() {
     setResult(null);
     setUserName(data.name);
     setUserQuestion(data.question);
+    setUserBirthMonth(data.month);
+    setUserBirthYear(data.year);
     
     try {
       // Add timeout to prevent infinite loading
@@ -108,7 +116,13 @@ export default function Home() {
           description: response.error,
         });
       } else if (response.data) {
-        setResult(response.data);
+        // Add origin tracking to prediction
+        const predictionWithOrigin: PredictionWithOrigin = {
+          ...response.data,
+          origin: user ? 'authed' : 'guest',
+          isPreAuthResult: !user
+        };
+        setResult(predictionWithOrigin);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 8000);
         
@@ -134,7 +148,6 @@ export default function Home() {
 
   return (
     <>
-      <Header />
       <main className="container mx-auto flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center p-4">
         {showConfetti && windowSize.width > 0 && <ReactConfetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={400} />}
         <div className="w-full max-w-lg">
@@ -162,7 +175,7 @@ export default function Home() {
 
           {result && (
             <>
-              <PredictionResult result={result} name={userName} question={userQuestion} />
+              <PredictionResult result={result} name={userName} question={userQuestion} birthMonth={userBirthMonth} birthYear={userBirthYear} />
               {!user && (
                 <Card className="mt-6 border-primary/20 bg-primary/5">
                   <CardContent className="p-4 text-center">
@@ -199,6 +212,8 @@ export default function Home() {
                   setResult(null);
                   setUserName('');
                   setUserQuestion('');
+                  setUserBirthMonth('');
+                  setUserBirthYear('');
                 }}
                 className="mx-auto mt-6 block text-sm text-primary underline-offset-4 hover:underline"
               >

@@ -27,7 +27,7 @@ export async function getPrediction(data: {
     // Call our new API endpoint
     const baseURL = process.env.NODE_ENV === 'production' 
       ? process.env.NEXTAUTH_URL || 'https://cosmicquirks.in'
-      : 'http://localhost:3000';
+      : `http://localhost:${process.env.DEV_PORT || '3000'}`;
     
     const response = await fetch(`${baseURL}/api/prediction`, {
       method: 'POST',
