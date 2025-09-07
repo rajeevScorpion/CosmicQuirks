@@ -198,7 +198,7 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
                   <p className="text-muted-foreground">You share a birthday with...</p>
               </div>
               
-              <div className="group p-4 md:p-6 bg-muted/30 transition-all duration-300 hover:pb-8">
+              <div className="p-4 md:p-6 bg-muted/30">
                   <div className="w-full aspect-square bg-muted rounded-lg mb-2 md:mb-4 flex items-center justify-center overflow-hidden border">
                       <Image
                           src={result.characterImage}
@@ -209,8 +209,7 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
                           data-ai-hint="character portrait"
                       />
                   </div>
-                  {/* Character details - hidden on desktop normal state, visible on hover */}
-                  <div className="md:opacity-0 md:max-h-0 md:overflow-hidden md:group-hover:opacity-100 md:group-hover:max-h-32 transition-all duration-300">
+                  <div>
                       <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
                       <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
                   </div>
