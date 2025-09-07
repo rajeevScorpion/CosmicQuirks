@@ -1,11 +1,29 @@
 import type {Metadata} from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/contexts/auth-context';
+import { PWAInstaller } from '@/components/pwa-installer';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Cosmic Quirks',
-  description: 'Find out your funny future prediction!',
+  description: 'Your future, revealed with a wink from history. Get funny predictions with AI-generated character illustrations.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Cosmic Quirks',
+  },
+  icons: {
+    icon: [
+      { url: '/icon-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { url: '/icon-512x512.svg', sizes: '512x512', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.svg', sizes: '180x180', type: 'image/svg+xml' },
+    ],
+  },
+  viewport: 'width=device-width, initial-scale=1, user-scalable=no',
+  themeColor: '#7c3aed',
 };
 
 export default function RootLayout({
@@ -22,6 +40,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
+          <PWAInstaller />
           {children}
           <Toaster />
         </AuthProvider>

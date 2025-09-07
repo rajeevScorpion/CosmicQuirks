@@ -190,16 +190,16 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
         <div ref={resultCardRef} className="p-4 bg-transparent">
           <Card className="overflow-hidden rounded-2xl border-2 border-primary/20 shadow-lg">
             <CardContent className="p-0">
-              <div className="bg-card p-6 text-center">
-                  <div className="flex justify-center items-center mb-4">
+              <div className="bg-card p-4 md:p-6 text-center">
+                  <div className="flex justify-center items-center mb-2 md:mb-4">
                       <Gift className="w-8 h-8 text-primary" />
                   </div>
                   <h2 className="text-2xl font-bold">A Birthday Match for {name}!</h2>
                   <p className="text-muted-foreground">You share a birthday with...</p>
               </div>
               
-              <div className="p-6 bg-muted/30">
-                  <div className="w-full aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden border">
+              <div className="group p-4 md:p-6 bg-muted/30 transition-all duration-300 hover:pb-8">
+                  <div className="w-full aspect-square bg-muted rounded-lg mb-2 md:mb-4 flex items-center justify-center overflow-hidden border">
                       <Image
                           src={result.characterImage}
                           alt={`Image of ${result.characterName}`}
@@ -209,21 +209,24 @@ export function PredictionResult({ result, name, question }: PredictionResultPro
                           data-ai-hint="character portrait"
                       />
                   </div>
-                  <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
-                  <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
+                  {/* Character details - hidden on desktop normal state, visible on hover */}
+                  <div className="md:opacity-0 md:max-h-0 md:overflow-hidden md:group-hover:opacity-100 md:group-hover:max-h-32 transition-all duration-300">
+                      <h3 className="text-xl font-semibold text-center">{result.characterName}</h3>
+                      <p className="text-muted-foreground italic mt-2 text-center">{result.characterDescription}</p>
+                  </div>
               </div>
               
-              <div className="bg-card p-6 text-center">
+              <div className="bg-card p-4 md:p-6 text-center">
                   <h3 className="text-xl font-bold">Question</h3>
-                  <p className="text-foreground/90 mt-2 line-clamp-2">
+                  <p className="text-foreground/90 mt-1 md:mt-2 line-clamp-2">
                     {question}
                   </p>
-                  <div className="my-4 h-px w-20 bg-primary/20 mx-auto" />
+                  <div className="my-2 md:my-4 h-px w-20 bg-primary/20 mx-auto" />
                   <h3 className="text-2xl font-bold text-primary">Your Cosmic Prediction</h3>
-                  <p className="text-foreground/90 mt-4">
+                  <p className="text-foreground/90 mt-2 md:mt-4">
                       {result.prediction}
                   </p>
-                  <p className="text-xs text-primary mt-4 text-center">
+                  <p className="text-xs text-primary mt-2 md:mt-4 text-center">
                     cosmicQuirks.in
                   </p>
               </div>

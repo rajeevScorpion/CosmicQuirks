@@ -78,20 +78,41 @@ export default function Home() {
     setUserName(data.name);
     setUserQuestion(data.question);
     
-    const response = await getPrediction(data);
+    try {
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 60000); // 60 seconds timeout
+      });
+      
+      const response = await Promise.race([
+        getPrediction(data),
+        timeoutPromise
+      ]);
 
-    if (response.error) {
+      if (response.error) {
+        toast({
+          variant: 'destructive',
+          title: 'The cosmos are fuzzy right now.',
+          description: response.error,
+        });
+      } else if (response.data) {
+        setResult(response.data);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 8000);
+      }
+    } catch (error) {
+      console.error('Prediction error:', error);
       toast({
         variant: 'destructive',
         title: 'The cosmos are fuzzy right now.',
-        description: response.error,
+        description: error instanceof Error && error.message === 'Request timeout' 
+          ? 'The cosmic forces are taking too long to respond. Please try again.'
+          : 'An unexpected cosmic disturbance occurred. Please try again.',
       });
-    } else if (response.data) {
-      setResult(response.data);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 8000);
+    } finally {
+      // Always clear loading state
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
