@@ -25,11 +25,28 @@ export const getSupabase = () => {
   return _supabase;
 };
 
-// Legacy export - will only work in browser
+// Legacy export - will only work in browser with better error handling
 export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
   get(target, prop) {
-    const client = getSupabase();
-    const value = (client as any)[prop];
-    return typeof value === 'function' ? value.bind(client) : value;
+    try {
+      const client = getSupabase();
+      const value = (client as any)[prop];
+      return typeof value === 'function' ? value.bind(client) : value;
+    } catch (error) {
+      console.error('Supabase client error:', error);
+      // Return a no-op function to prevent crashes
+      if (prop === 'auth') {
+        return {
+          getSession: async () => ({ data: { session: null }, error: null }),
+          getUser: async () => ({ data: { user: null }, error: null }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+          signInWithOAuth: async () => ({ error: new Error('Supabase client not available') }),
+          signInWithPassword: async () => ({ error: new Error('Supabase client not available') }),
+          signUp: async () => ({ error: new Error('Supabase client not available') }),
+          signOut: async () => ({ error: new Error('Supabase client not available') })
+        };
+      }
+      return () => Promise.resolve({ data: null, error: new Error('Supabase client not available') });
+    }
   }
 });

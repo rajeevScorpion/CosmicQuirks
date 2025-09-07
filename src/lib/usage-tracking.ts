@@ -3,7 +3,7 @@ import type { User } from '@/lib/supabase/types';
 
 // Environment configuration helpers
 export const getLimits = () => ({
-  unregistered: parseInt(process.env.UNREGISTERED_DAILY_LIMIT || '2', 10),
+  unregistered: parseInt(process.env.NEXT_PUBLIC_UNAUTH_RESULT_LIMIT || process.env.UNREGISTERED_DAILY_LIMIT || '100', 10),
   registered: parseInt(process.env.REGISTERED_DAILY_LIMIT || '10', 10),
   premium: parseInt(process.env.PREMIUM_DAILY_LIMIT || '50', 10),
 });

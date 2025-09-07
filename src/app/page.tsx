@@ -14,6 +14,7 @@ import { SignInButton } from '@/components/auth/sign-in-button';
 import { Sparkles, Star, Users, Zap } from 'lucide-react';
 import ReactConfetti from 'react-confetti';
 import { Card, CardContent } from '@/components/ui/card';
+import { useUnauthLimit } from '@/hooks/use-unauth-limit';
 
 const loadingMessages = [
   'Consulting the celestial archives...',
@@ -30,6 +31,7 @@ export default function Home() {
   const [userQuestion, setUserQuestion] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
+  const { canGenerate, used, limit, incrementUsage } = useUnauthLimit();
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState<{width: number; height: number}>({width: 0, height: 0});
   const [currentYear, setCurrentYear] = useState<number | null>(null);
@@ -73,6 +75,16 @@ export default function Home() {
 
 
   const handleSubmit = async (data: z.infer<typeof PredictionFormSchema>) => {
+    // Check unauth limit before proceeding
+    if (!user && !canGenerate) {
+      toast({
+        variant: 'destructive',
+        title: 'Daily cosmic limit reached',
+        description: `You've reached your daily limit of ${limit} predictions. Sign up for unlimited cosmic wisdom or return tomorrow!`,
+      });
+      return;
+    }
+
     setIsLoading(true);
     setResult(null);
     setUserName(data.name);
@@ -99,6 +111,11 @@ export default function Home() {
         setResult(response.data);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 8000);
+        
+        // Increment usage for unregistered users
+        if (!user) {
+          incrementUsage();
+        }
       }
     } catch (error) {
       console.error('Prediction error:', error);

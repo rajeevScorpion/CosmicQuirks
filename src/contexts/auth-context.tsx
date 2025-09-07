@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [dbUser, setDbUser] = useState<DBUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   const fetchDbUser = async (userId: string) => {
     try {
@@ -40,27 +41,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = async () => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    setUser(currentUser);
-    
-    if (currentUser) {
-      await fetchDbUser(currentUser.id);
-    } else {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      
+      if (currentUser) {
+        await fetchDbUser(currentUser.id);
+      } else {
+        setDbUser(null);
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+      setUser(null);
       setDbUser(null);
     }
   };
 
   useEffect(() => {
-    // Get initial session
+    // Set mounted flag
+    setMounted(true);
+
+    // Debug environment variables
+    if (typeof window !== 'undefined') {
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+      console.log('Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    }
+
+    // Get initial session with better error handling
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchDbUser(session.user.id);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchDbUser(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error in getSession:', error);
+        setUser(null);
+        setDbUser(null);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     getSession();
@@ -68,20 +97,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchDbUser(session.user.id);
-        } else {
-          setDbUser(null);
+        try {
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            await fetchDbUser(session.user.id);
+            
+          } else {
+            setDbUser(null);
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+        } finally {
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    // Fallback timeout to ensure loading state is cleared
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth loading timeout reached - forcing loading to false');
+      setLoading(false);
+    }, 10000); // 10 second timeout
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
+
+  // Prevent hydration mismatch by not rendering auth-dependent content until mounted
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
 
   const signInWithGoogle = async () => {
     try {

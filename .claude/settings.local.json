@@ -26,9 +26,21 @@
       "Bash(powershell:*)",
       "Bash(del debug-user-session.js)",
       "Bash(del debug-image.mjs)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(echo \"Shell: $0\")",
+      "Bash(echo \"SHELL: $SHELL\")",
+      "Bash(echo \"PATH: $PATH\")",
+      "Bash(cmd.exe:*)",
+      "mcp__vercel__list_teams",
+      "mcp__vercel__list_projects",
+      "mcp__vercel__list_deployments",
+      "mcp__vercel__get_deployment_build_logs"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "vercel",
+    "github"
+  ]
 }

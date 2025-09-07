@@ -1,10 +1,11 @@
-const CACHE_NAME = 'cosmic-quirks-v1';
+const CACHE_NAME = 'cosmic-quirks-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/apple-touch-icon.png'
+  '/icon-192x192.svg',
+  '/icon-512x512.svg',
+  '/apple-touch-icon.svg'
 ];
 
 // Install event - cache static assets

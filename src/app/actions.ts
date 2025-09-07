@@ -9,7 +9,6 @@ export async function getPrediction(data: {
   month: string; 
   year: string; 
   question: string;
-  formType?: string;
 }): Promise<{data: CharacterMatchOutput | null; error: string | null; code?: string}> {
   if (!data.name || !data.month || !data.year || !data.question) {
     return { 
@@ -28,7 +27,7 @@ export async function getPrediction(data: {
     // Call our new API endpoint
     const baseURL = process.env.NODE_ENV === 'production' 
       ? process.env.NEXTAUTH_URL || 'https://cosmicquirks.in'
-      : 'http://localhost:9002';
+      : 'http://localhost:3000';
     
     const response = await fetch(`${baseURL}/api/prediction`, {
       method: 'POST',
@@ -41,7 +40,7 @@ export async function getPrediction(data: {
         month: data.month,
         year: data.year,
         question: data.question,
-        formType: data.formType || 'fortune',
+        formType: 'fortune',
       }),
     });
 

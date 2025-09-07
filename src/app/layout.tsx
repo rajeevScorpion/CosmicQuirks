@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/contexts/auth-context';
 import { PWAInstaller } from '@/components/pwa-installer';
@@ -22,7 +22,12 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.svg', sizes: '180x180', type: 'image/svg+xml' },
     ],
   },
-  viewport: 'width=device-width, initial-scale=1, user-scalable=no',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  userScalable: false,
   themeColor: '#7c3aed',
 };
 
