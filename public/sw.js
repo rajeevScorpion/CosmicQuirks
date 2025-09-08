@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cosmic-quirks-v2';
+const CACHE_NAME = 'cosmic-quirks-v3-auth-fix';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -38,6 +38,26 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only handle same-origin requests
   if (event.request.url.startsWith(self.location.origin)) {
+    // CRITICAL: Never cache auth-related requests
+    const url = new URL(event.request.url);
+    const isAuthRequest = url.pathname.startsWith('/auth/') || 
+                         url.pathname.startsWith('/api/auth') ||
+                         url.pathname.includes('/api/user') ||
+                         url.pathname.includes('/session') ||
+                         event.request.headers.get('x-supabase-auth') ||
+                         event.request.headers.has('authorization');
+
+    if (isAuthRequest) {
+      // Always go to network for auth requests, never cache
+      event.respondWith(
+        fetch(event.request).catch(() => {
+          // For failed auth requests, don't serve cached fallbacks
+          return new Response('Network Error', { status: 503 });
+        })
+      );
+      return;
+    }
+
     event.respondWith(
       caches.match(event.request)
         .then((response) => {
@@ -53,10 +73,11 @@ self.addEventListener('fetch', (event) => {
                 return response;
               }
 
-              // Cache successful responses for static assets
+              // Only cache static assets, never auth-related responses
               if (event.request.method === 'GET' && 
                   (event.request.url.includes('/static/') || 
-                   event.request.url.includes('/_next/static/'))) {
+                   event.request.url.includes('/_next/static/')) &&
+                  !isAuthRequest) {
                 const responseToCache = response.clone();
                 caches.open(CACHE_NAME)
                   .then((cache) => {
@@ -66,7 +87,7 @@ self.addEventListener('fetch', (event) => {
 
               return response;
             })
-            .catch(() => {
+            .catch((error) => {
               // If network fails, try to serve the main page for navigation requests
               if (event.request.mode === 'navigate') {
                 return caches.match('/');

@@ -22,13 +22,17 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { 
           error: 'Authentication required',
           message: 'You must be signed in to save predictions.'
         },
         { status: 401 }
       );
+      // Never cache auth-related responses
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      response.headers.set('Pragma', 'no-cache');
+      return response;
     }
 
     // Parse and validate request body
@@ -118,11 +122,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       success: true,
       message: 'Prediction saved successfully',
       predictionId: savedPrediction.id
     });
+    
+    // Never cache auth-dependent responses
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    response.headers.set('Pragma', 'no-cache');
+    
+    return response;
 
   } catch (error) {
     console.error('Save prediction API error:', error);

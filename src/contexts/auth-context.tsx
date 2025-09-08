@@ -18,10 +18,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ 
+  children, 
+  initialSession = null 
+}: { 
+  children: React.ReactNode;
+  initialSession?: any;
+}) {
+  const [user, setUser] = useState<User | null>(initialSession?.user ?? null);
   const [dbUser, setDbUser] = useState<DBUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialSession);
   const [mounted, setMounted] = useState(false);
 
   const fetchDbUser = async (userId: string) => {
@@ -60,54 +66,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set mounted flag
     setMounted(true);
-    let initialTimeout: NodeJS.Timeout;
 
-    // Get initial session with better error handling and timeout
-    const getSession = async () => {
+    // Initialize auth state, using server session if available
+    const initializeAuth = async () => {
       try {
-        // Add a race condition between auth check and timeout
-        const authPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth timeout')), 3000)
-        );
+        console.log('[Auth] Initializing auth state...', initialSession ? 'with server session' : 'client-only');
         
-        const { data: { session }, error } = await Promise.race([
-          authPromise,
-          timeoutPromise
-        ]) as any;
-        
-        if (error) {
-          console.error('Error getting session:', error);
+        if (initialSession) {
+          // Use server session for immediate hydration
+          console.log('[Auth] Using server session');
+          setUser(initialSession.user);
+          if (initialSession.user) {
+            await fetchDbUser(initialSession.user.id);
+          }
           setLoading(false);
-          return;
-        }
-
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchDbUser(session.user.id);
+        } else {
+          // Fallback to client session fetch
+          console.log('[Auth] Fetching client session');
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('[Auth] Session fetch error:', error);
+            setUser(null);
+            setDbUser(null);
+          } else {
+            console.log('[Auth] Session fetched:', session ? 'authenticated' : 'anonymous');
+            setUser(session?.user ?? null);
+            
+            if (session?.user) {
+              await fetchDbUser(session.user.id);
+            } else {
+              setDbUser(null);
+            }
+          }
+          setLoading(false);
         }
       } catch (error) {
-        // Auth timeout or other error - just proceed without auth
+        console.error('[Auth] Initialization error:', error);
         setUser(null);
         setDbUser(null);
-      } finally {
         setLoading(false);
+      } finally {
+        console.log('[Auth] Initialization complete');
       }
     };
 
-    // Set shorter fallback timeout
-    initialTimeout = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-
-    getSession().finally(() => {
-      clearTimeout(initialTimeout);
-    });
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[Auth] State change:', event, session ? 'authenticated' : 'anonymous');
+        
         try {
           setUser(session?.user ?? null);
           
@@ -117,14 +127,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setDbUser(null);
           }
         } catch (error) {
-          console.error('Error in auth state change:', error);
+          console.error('[Auth] State change error:', error);
         }
       }
     );
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(initialTimeout);
     };
   }, []);
 

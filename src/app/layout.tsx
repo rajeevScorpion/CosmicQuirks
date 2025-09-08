@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/contexts/auth-context';
 import { PWAInstaller } from '@/components/pwa-installer';
 import { Header } from '@/components/header';
+import { createClient } from '@/lib/supabase/server';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -32,11 +33,21 @@ export const viewport: Viewport = {
   themeColor: '#7c3aed',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Fetch server session for SSR hydration
+  let initialSession = null;
+  try {
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    initialSession = session;
+  } catch (error) {
+    console.error('[Layout] Failed to fetch server session:', error);
+  }
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -45,7 +56,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
+        <AuthProvider initialSession={initialSession}>
           <PWAInstaller />
           <Header />
           {children}
