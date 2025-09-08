@@ -1,6 +1,5 @@
-const CACHE_NAME = 'cosmic-quirks-v3-auth-fix';
+const CACHE_NAME = 'cosmic-quirks-v4-navigation-fix';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icon-192x192.png',
   '/icon-192x192.svg',
@@ -38,8 +37,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only handle same-origin requests
   if (event.request.url.startsWith(self.location.origin)) {
-    // CRITICAL: Never cache auth-related requests
     const url = new URL(event.request.url);
+    
+    // CRITICAL: Never cache auth-related requests
     const isAuthRequest = url.pathname.startsWith('/auth/') || 
                          url.pathname.startsWith('/api/auth') ||
                          url.pathname.includes('/api/user') ||
@@ -47,11 +47,17 @@ self.addEventListener('fetch', (event) => {
                          event.request.headers.get('x-supabase-auth') ||
                          event.request.headers.has('authorization');
 
-    if (isAuthRequest) {
-      // Always go to network for auth requests, never cache
+    // CRITICAL: Navigation requests should be network-first to get fresh server-rendered HTML
+    const isNavigationRequest = event.request.mode === 'navigate';
+
+    if (isAuthRequest || isNavigationRequest) {
+      // Always go to network for auth and navigation requests, never cache
       event.respondWith(
         fetch(event.request).catch(() => {
-          // For failed auth requests, don't serve cached fallbacks
+          // For failed requests, provide appropriate fallbacks
+          if (isNavigationRequest) {
+            return new Response('Offline - Please check your connection', { status: 503 });
+          }
           return new Response('Network Error', { status: 503 });
         })
       );
