@@ -33,6 +33,10 @@ export const viewport: Viewport = {
   themeColor: '#7c3aed',
 };
 
+// Force dynamic rendering for auth-dependent layout
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -41,9 +45,16 @@ export default async function RootLayout({
   // Fetch server session for SSR hydration
   let initialSession = null;
   try {
+    console.log('[Layout] Fetching server session...');
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    initialSession = session;
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('[Layout] Server session error:', error);
+    } else {
+      initialSession = session;
+      console.log('[Layout] Server session:', session ? 'authenticated' : 'anonymous');
+    }
   } catch (error) {
     console.error('[Layout] Failed to fetch server session:', error);
   }

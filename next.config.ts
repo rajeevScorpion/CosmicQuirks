@@ -18,6 +18,22 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  headers: async () => [
+    {
+      // Prevent CDN caching of service worker
+      source: '/sw.js',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-cache, no-store, must-revalidate',
+        },
+        {
+          key: 'Pragma', 
+          value: 'no-cache',
+        },
+      ],
+    },
+  ],
 };
 
 export default nextConfig;

@@ -35,7 +35,9 @@
       "mcp__vercel__list_projects",
       "mcp__vercel__list_deployments",
       "mcp__vercel__get_deployment_build_logs",
-      "mcp__vercel__get_deployment"
+      "mcp__vercel__get_deployment",
+      "mcp__vercel__get_project",
+      "mcp__vercel__web_fetch_vercel_url"
     ],
     "deny": [],
     "ask": []
