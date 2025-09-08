@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cosmic-quirks-v4-navigation-fix';
+const CACHE_NAME = 'cosmic-quirks-v5-production-fix';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/icon-192x192.png',
